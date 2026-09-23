@@ -72,3 +72,34 @@ class PaymentOption(BaseModel):
     payment_frequency_days: Optional[float] = None
     financing_fee: float
     total_payable_amount: float
+
+class CategoryPrediction(BaseModel):
+    transaction_id: str
+    category: str
+    confidence: float
+
+class AnomalySignal(BaseModel):
+    transaction_id: str
+    is_anomaly: bool
+    anomaly_score: float
+    reason: str
+
+class CategorySpending(BaseModel):
+    category: str
+    total_amount: float
+
+class FinancialState(BaseModel):
+    user_id: str
+    income: float
+    expenses: float
+    savings: float
+    savings_rate: float
+    expense_ratio: float
+    essential_expenses: float
+    discretionary_expenses: float
+    recurring_obligations: float
+    emi_burden: float
+    cash_flow: float
+    category_spending: List[CategorySpending]
+    anomalies: List[AnomalySignal]
+    data_quality_confidence: float
