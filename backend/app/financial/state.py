@@ -22,8 +22,16 @@ class FinancialStateEngine:
 
         for t in transactions:
             # We assume t.amount is already absolute
-            if t.direction == "credit" or t.event_type == "income":
+            if t.event_type == "income":
                 income += t.amount
+            elif t.event_type == "refund":
+                expenses -= t.amount
+                cat = t.category if t.category else "unknown"
+                category_totals[cat] = category_totals.get(cat, 0.0) - t.amount
+                if t.flexibility == "fixed":
+                    essential_expenses -= t.amount
+                else:
+                    discretionary_expenses -= t.amount
             elif t.direction == "debit":
                 expenses += t.amount
                 

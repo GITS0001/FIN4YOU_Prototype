@@ -36,8 +36,11 @@ class PredictionEngine:
         
         for t in transactions:
             month_key = self._get_month_key(t.event_date)
-            if t.direction == "credit" or t.event_type == "income":
+            if t.event_type == "income":
                 monthly_income[month_key] += t.amount
+            elif t.event_type == "refund":
+                if t.flexibility != "fixed" and t.event_type not in ["subscription", "debt_payment"]:
+                    monthly_variable_expenses[month_key] -= t.amount
             elif t.direction == "debit":
                 if t.flexibility == "fixed" or t.event_type in ["subscription", "debt_payment"]:
                     # Will collect obligations later from the latest month
