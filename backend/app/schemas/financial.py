@@ -103,3 +103,43 @@ class FinancialState(BaseModel):
     category_spending: List[CategorySpending]
     anomalies: List[AnomalySignal]
     data_quality_confidence: float
+
+class ForecastEvaluation(BaseModel):
+    mae: Optional[float] = None
+    rmse: Optional[float] = None
+
+class ForecastResult(BaseModel):
+    target: str
+    period: str
+    predicted_value: float
+    model: str
+    uncertainty: float
+    evaluation: Optional[ForecastEvaluation] = None
+
+class FutureObligation(BaseModel):
+    description: str
+    category: str
+    expected_amount: float
+    expected_period: str
+
+class ProjectedCashFlow(BaseModel):
+    period: str
+    projected_income: float
+    projected_expenses: float
+    known_obligations: float
+    projected_cash_flow: float
+
+class CashFlowGap(BaseModel):
+    detected: bool
+    period: str
+    projected_balance: float
+    required_buffer: float
+    shortfall: float
+
+class PredictionEngineResult(BaseModel):
+    available: bool
+    reason: Optional[str] = None
+    forecasts: List[ForecastResult] = []
+    obligations: List[FutureObligation] = []
+    projected_cash_flow: Optional[ProjectedCashFlow] = None
+    gap_detection: Optional[CashFlowGap] = None
