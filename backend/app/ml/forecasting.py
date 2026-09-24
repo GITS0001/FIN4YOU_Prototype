@@ -64,7 +64,7 @@ class PredictionEngine:
         # Evaluate Income Forecast
         train_incomes = [monthly_income[m] for m in train_months]
         test_income = monthly_income[test_month]
-        avg_train_income = sum(train_incomes) / len(train_incomes)
+        avg_train_income = sum(train_incomes) / len(train_incomes) if train_incomes else 0.0
         income_mae = abs(avg_train_income - test_income)
         
         # Final forecast uses all available months

@@ -1,6 +1,6 @@
 import pytest
 from datetime import date
-from app.schemas.financial import Transaction, FinancialState
+from app.schemas.financial import Transaction, FinancialState, FinancialProfile
 from app.ml.categorization import TransactionCategorizer
 from app.ml.anomaly import AnomalyDetector
 from app.financial.state import FinancialStateEngine
@@ -123,3 +123,21 @@ def test_empty_financial_state():
     assert state.savings == 0.0
     assert state.savings_rate == 0.0
     assert state.expense_ratio == 0.0
+
+def test_profile_schema_empty_list():
+    # Focused regression test to prove that passing an empty list []
+    # to a pipe-separated field correctly returns [] without triggering
+    # a pandas ambiguous truth value ValueError.
+    p = FinancialProfile(
+        user_id="u1",
+        home_currency="USD",
+        current_available_balance=1000.0,
+        minimum_balance_to_keep=500.0,
+        financial_priorities=[],
+        expense_categories_to_protect=[],
+        expense_categories_user_is_willing_to_reduce=[],
+        expense_categories_user_is_willing_to_stop=[],
+        payment_methods_user_will_consider=[]
+    )
+    assert p.financial_priorities == []
+    assert p.expense_categories_to_protect == []

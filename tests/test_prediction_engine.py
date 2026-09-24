@@ -97,3 +97,40 @@ def test_prediction_engine_insufficient_data(insufficient_history_transactions, 
     assert result.available is False
     assert "Insufficient historical observations" in result.reason
     assert len(result.forecasts) == 0
+
+def test_prediction_engine_single_month_zero_division_edge_case(sample_profile):
+    # Test for ZeroDivisionError when min_months_required=1 and train_months is empty
+    transactions = [
+        Transaction(transaction_id="t1", user_id="u1", event_type="income", description="Salary", category="salary", direction="credit", amount=5000.0, currency="ZAR", event_date=date(2024, 1, 1), status="settled", flexibility="variable")
+    ]
+    engine = PredictionEngine(min_months_required=1)
+    # This might throw ZeroDivisionError without a fix
+    result = engine.run_prediction(transactions, sample_profile)
+    
+    assert result.available is True
+    assert result.forecasts[0].predicted_value == 5000.0
+    assert result.forecasts[0].evaluation.mae == 5000.0
+
+def test_prediction_engine_refund_logic(sample_profile):
+    # Test that refunds properly reduce variable expenses
+    transactions = [
+        Transaction(transaction_id="t1", user_id="u1", event_type="expense", description="Groceries", category="groceries", direction="debit", amount=1000.0, currency="ZAR", event_date=date(2024, 1, 15), status="settled", flexibility="variable"),
+        Transaction(transaction_id="t2", user_id="u1", event_type="refund", description="Groceries Refund", category="groceries", direction="credit", amount=200.0, currency="ZAR", event_date=date(2024, 1, 20), status="settled", flexibility="variable"),
+    ]
+    engine = PredictionEngine(min_months_required=1)
+    result = engine.run_prediction(transactions, sample_profile)
+    
+    assert result.available is True
+    exp_forecast = next(f for f in result.forecasts if f.target == "variable_expenses")
+    assert exp_forecast.predicted_value == 800.0 # 1000 - 200
+
+def test_prediction_engine_zero_financial_totals(sample_profile):
+    # Test where income and expenses cancel out or are zero
+    transactions = [
+        Transaction(transaction_id="t1", user_id="u1", event_type="income", description="Bonus", category="salary", direction="credit", amount=0.0, currency="ZAR", event_date=date(2024, 1, 1), status="settled", flexibility="variable"),
+    ]
+    engine = PredictionEngine(min_months_required=1)
+    result = engine.run_prediction(transactions, sample_profile)
+    assert result.available is True
+    assert result.projected_cash_flow.projected_income == 0.0
+

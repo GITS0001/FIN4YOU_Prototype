@@ -46,6 +46,8 @@ class FinancialProfile(BaseModel):
     )
     @classmethod
     def split_pipe_separated(cls, v):
+        if isinstance(v, list):
+            return v
         if isinstance(v, str):
             return [x.strip() for x in v.split('|') if x.strip()]
         if pd.isna(v) if 'pd' in globals() else v is None: # handle nan if called directly from df
