@@ -27,3 +27,8 @@
 
 ## 5. Insufficient Data Behavior
 - If a user has less than 2 months of history, forecasting will abort safely and return a structured `{"available": false, "reason": "Insufficient historical observations"}` instead of throwing errors or guessing.
+
+## 6. Validation and Edge Case Handling
+- **Zero Division Safety**: Engine safely handles users with extreme cases, such as exactly 1 month of history (if `min_months_required=1` is used) or months with strictly zero income/expenses, without throwing `ZeroDivisionError`.
+- **Refund Dynamics**: Refunds accurately reduce variable expenses for their respective categories and periods without mathematically breaking the standard deviation or average calculations.
+- **Empty Profiles**: Financial calculations for state and forecasting gracefully degrade to 0.0 values, preventing application crashes when users first link empty accounts.
