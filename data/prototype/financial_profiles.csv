@@ -1,0 +1,11 @@
+user_id,home_currency,current_available_balance,minimum_balance_to_keep,financial_priorities,expense_categories_to_protect,expense_categories_user_is_willing_to_reduce,expense_categories_user_is_willing_to_stop,payment_methods_user_will_consider,max_installment_months
+user_01,ZAR,58481.1,18000,education|debt_repayment,rent|education|groceries|debt_repayment,dining,delivery_membership,full_payment,
+user_02,IDR,60383889.2,29158400,education|family_support,housing|utilities|education,entertainment,cloud_storage,partial_payment|installments,7.0
+user_03,IDR,5810300.0,2668700,retirement_investment|emergency_savings,rent|utilities|groceries,streaming|shopping,streaming|cloud_storage,full_payment|partial_payment|installments,2.0
+user_04,IDR,52206950.0,30686600,education|emergency_savings,rent|groceries|transport,entertainment,music_subscription,full_payment,
+user_05,ZAR,46475.1,13100,healthcare|family_support,rent|healthcare|family_support|groceries,shopping,cloud_storage,full_payment|partial_payment|installments,4.0
+user_26,IDR,100845250.0,24768300,retirement_investment|emergency_savings,rent|utilities|groceries,streaming,streaming,full_payment|installments,5.0
+user_27,ZAR,93141.8,20500,education|emergency_savings,rent|groceries|transport,,delivery_membership,full_payment|partial_payment,
+user_28,EUR,1789.4,1100,emergency_savings|housing,rent|groceries|transport,,streaming|cloud_storage,full_payment,
+user_29,ZAR,113540.1,28300,education|family_support,housing|utilities|education,dining,,full_payment|partial_payment|installments,5.0
+user_30,USD,3752.72,900,retirement_investment|emergency_savings,rent|utilities|groceries,dining|streaming,streaming,partial_payment|installments,4.0

@@ -1,0 +1,6 @@
+request_id,amount_safe_to_pay,affordability_status,recommended_payment_method,payment_plan,earliest_date_for_full_payment,spending_changes_needed,decision_explanation
+request_26,15656000.0,affordable_now,full_payment,2025-08-03:15656000,2025-08-03,none,"Pay IDR 15,656,000.00 today. This leaves at least IDR 69,671,937.84 available over the next 90 days."
+request_27,6670.0,affordable_now,full_payment,2026-07-05:6670,2026-07-05,none,"Pay ZAR 6,670.00 today. This leaves at least ZAR 89,192.73 available over the next 90 days."
+request_28,318.06,affordable_later,wait,2024-07-15:1302.40,2024-07-15,none,"Pay EUR 1,302.40 in full on 2024-07-15. Paying earlier would take balance below minimum."
+request_29,51524.0,not_affordable,not_recommended,none,,none,"Do not proceed with the ZAR 51,524.00 request. None of the candidate payment plans keep the ZAR 28,300.00 minimum balance protected."
+request_30,775.2,affordable_with_plan,installments,2026-04-06:268.74|2026-05-06:268.74|2026-06-05:268.74,2026-04-06,none,Use installment plan (payment_option_83) of 3 payments starting 2026-04-06. This keeps the minimum balance protected.

@@ -1,0 +1,6 @@
+request_id,user_id,request_date,request_type,requested_amount,desired_completion_date,allows_partial_payment,request_text
+request_26,user_26,2025-08-03,family_transfer,15656000.0,2025-10-07,False,"I've been asked to transfer IDR 15,656,000 to my family. I need to complete it by 7 October 2025. Should I send the full amount, send part of it, or wait?"
+request_27,user_27,2026-07-05,purchase,6670.0,2026-08-21,True,"Can I make this purchase without dipping into the balance I want to keep? I need to decide by 21 August 2026. The laptop costs ZAR 6,670."
+request_28,user_28,2024-06-07,investment,1302.4,2024-08-15,False,"I'm planning an investment contribution of EUR 1,302.40. What portion can I invest today without going below my minimum balance?"
+request_29,user_29,2025-11-04,investment,51524.0,2025-11-23,False,"Would investing this amount leave my upcoming bills covered? I have an opportunity to invest ZAR 51,524."
+request_30,user_30,2026-04-06,debt_repayment,775.2,2026-06-06,False,The additional loan payment would be USD 775.20. I need to complete it by 6 June 2026. Can I clear this additional amount without putting upcoming bills at risk?
