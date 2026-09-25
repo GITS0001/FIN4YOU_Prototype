@@ -1,0 +1,129 @@
+{
+  "inventory": {
+    "modules": [
+      "ingestion",
+      "financial",
+      "copilot",
+      "utils",
+      "__pycache__",
+      "schemas",
+      "ml",
+      "api",
+      "decision",
+      "services"
+    ],
+    "schemas": [
+      ".gitkeep",
+      "copilot.py",
+      "__init__.py",
+      "__pycache__",
+      "financial.py",
+      "decision.py"
+    ]
+  },
+  "data_integrity": {
+    "events_count": 881,
+    "unique_users": 10,
+    "profiles_count": 10,
+    "requests_count": 5,
+    "payment_options_count": 29
+  },
+  "user_validation": {
+    "user_01": {
+      "events_count": 103,
+      "has_refunds": false,
+      "state_cash_flow": -79727.63000000002,
+      "prediction_available": true,
+      "affordability_1500": "AFFORDABLE",
+      "whatif_buffer_change": "maintained"
+    },
+    "user_02": {
+      "events_count": 82,
+      "has_refunds": false,
+      "state_cash_flow": 36925347.389999986,
+      "prediction_available": true,
+      "affordability_1500": "AFFORDABLE",
+      "whatif_buffer_change": "maintained"
+    },
+    "user_03": {
+      "events_count": 68,
+      "has_refunds": false,
+      "state_cash_flow": 9389772.579999994,
+      "prediction_available": true,
+      "affordability_1500": "AFFORDABLE",
+      "whatif_buffer_change": "maintained"
+    },
+    "user_04": {
+      "events_count": 103,
+      "has_refunds": false,
+      "state_cash_flow": 16991644.380000055,
+      "prediction_available": true,
+      "affordability_1500": "AFFORDABLE",
+      "whatif_buffer_change": "maintained"
+    },
+    "user_05": {
+      "events_count": 81,
+      "has_refunds": false,
+      "state_cash_flow": 801.5000000000146,
+      "prediction_available": true,
+      "affordability_1500": "AFFORDABLE",
+      "whatif_buffer_change": "maintained"
+    },
+    "user_26": {
+      "events_count": 76,
+      "has_refunds": false,
+      "state_cash_flow": 29434007.48000005,
+      "prediction_available": true,
+      "affordability_1500": "AFFORDABLE",
+      "whatif_buffer_change": "maintained"
+    },
+    "user_27": {
+      "events_count": 114,
+      "has_refunds": false,
+      "state_cash_flow": 26109.060000000027,
+      "prediction_available": true,
+      "affordability_1500": "AFFORDABLE",
+      "whatif_buffer_change": "maintained"
+    },
+    "user_28": {
+      "events_count": 103,
+      "has_refunds": false,
+      "state_cash_flow": 869.5999999999995,
+      "prediction_available": true,
+      "affordability_1500": "NOT AFFORDABLE UNDER CURRENT PROJECTION",
+      "whatif_buffer_change": "maintained"
+    },
+    "user_29": {
+      "events_count": 79,
+      "has_refunds": false,
+      "state_cash_flow": -14797.369999999966,
+      "prediction_available": true,
+      "affordability_1500": "AFFORDABLE",
+      "whatif_buffer_change": "maintained"
+    },
+    "user_30": {
+      "events_count": 72,
+      "has_refunds": false,
+      "state_cash_flow": 431.3999999999978,
+      "prediction_available": true,
+      "affordability_1500": "AFFORDABLE",
+      "whatif_buffer_change": "maintained"
+    }
+  },
+  "api_tests": [
+    {
+      "query": "Can I afford to spend 1302.4 in installments?",
+      "user": "user_28",
+      "status": 200,
+      "intent": "PAYMENT_OPTION_ANALYSIS",
+      "latency": 0.01417398452758789
+    },
+    {
+      "query": "Cross user same query",
+      "user": "user_1",
+      "status": 200,
+      "intent": "UNKNOWN",
+      "affordability": null
+    }
+  ]
+}
