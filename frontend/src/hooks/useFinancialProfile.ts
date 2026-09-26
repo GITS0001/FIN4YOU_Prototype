@@ -1,31 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useGlobalState } from '../context/GlobalStateContext';
 import { usersApi } from '../api/users';
-import { useSelectedUser } from '../context/UserContext';
-import type { FinancialProfile, ApiStatus, ApiError } from '../types';
+import type { FinancialProfile } from '../types';
 
 export function useFinancialProfile() {
-  const { selectedUserId } = useSelectedUser();
-  const [data, setData] = useState<FinancialProfile | null>(null);
-  const [status, setStatus] = useState<ApiStatus>('idle');
-  const [error, setError] = useState<ApiError | null>(null);
+  const { globalState, status, error, refetch, setOverrides, overrides } = useGlobalState();
 
-  const fetch = useCallback(async () => {
-    setStatus('loading');
-    setError(null);
-    try {
-      const profile = await usersApi.getProfile(selectedUserId);
-      setData(profile);
-      setStatus('success');
-    } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError);
-      setStatus('error');
-    }
-  }, [selectedUserId]);
+  const update = useCallback(async (updatedProfile: FinancialProfile) => {
+    // If they change available balance or buffer, we can set overrides
+    // Alternatively, update backend in-memory profile
+    const profile = await usersApi.updateProfile(updatedProfile.user_id, updatedProfile);
+    refetch(); // Trigger global state refresh
+    return profile;
+  }, [refetch]);
 
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
-
-  return { data, status, error, refetch: fetch };
+  return { 
+    data: globalState?.baseline || null, 
+    status, 
+    error, 
+    refetch, 
+    update 
+  };
 }

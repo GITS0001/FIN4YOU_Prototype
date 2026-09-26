@@ -43,7 +43,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       role="alert"
       aria-live="polite"
     >
-      <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mb-4">
+      <div className="w-12 h-12 bg-danger/10 rounded-xl flex items-center justify-center mb-4">
         <Icon size={22} className="text-danger" aria-hidden="true" />
       </div>
       <h3 className="text-[15px] font-semibold text-primary-dark mb-1">{displayTitle}</h3>

@@ -2,11 +2,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 
 // All prototype users available in the system
 export const DEMO_USERS = [
-  { id: 'user_28', label: 'User 28 (INR)', currency: 'INR' },
-  { id: 'user_01', label: 'User 01 (ZAR)', currency: 'ZAR' },
-  { id: 'user_30', label: 'User 30 (USD)', currency: 'USD' },
-  { id: 'user_05', label: 'User 05 (ZAR)', currency: 'ZAR' },
-  { id: 'user_27', label: 'User 27 (ZAR)', currency: 'ZAR' },
+  { id: 'user_28', label: 'Aditya (Prototype)', currency: 'INR' },
 ];
 
 export const DEFAULT_USER_ID = 'user_28';

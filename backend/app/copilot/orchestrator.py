@@ -10,6 +10,7 @@ from app.decision.affordability import AffordabilityEngine
 from app.decision.simulation import WhatIfSimulator
 from app.decision.impact import ImpactEngine
 from app.schemas.financial import PaymentOption
+from app.schemas.decision import DecisionTrace, Recommendation, ExpectedImpact
 
 import pandas as pd
 
@@ -22,7 +23,7 @@ class CopilotOrchestrator:
         self.events = self.loader.load_events()
         
         try:
-            self.payment_opts_df = pd.read_csv(f"{data_dir}/request_payment_options.csv")
+            self.payment_opts_df = pd.read_csv(self.loader.data_dir / "request_payment_options.csv")
         except FileNotFoundError:
             self.payment_opts_df = pd.DataFrame()
 
@@ -74,7 +75,34 @@ class CopilotOrchestrator:
                     status="ERROR"
                 )
             aff_eng = AffordabilityEngine(profile, pred)
-            res = aff_eng.evaluate_purchase(parsed.amount)
+            try:
+                requests_df = pd.read_csv(self.loader.data_dir / "requests.csv")
+                req_id = None
+                for _, r in requests_df.iterrows():
+                    if r["user_id"] == profile.user_id and abs(r["requested_amount"] - parsed.amount) < 1.0:
+                        req_id = r["request_id"]
+                        break
+                po_list = []
+                if req_id and not self.payment_opts_df.empty:
+                    opts = self.payment_opts_df[self.payment_opts_df["request_id"] == req_id]
+                    for _, o in opts.iterrows():
+                        pfq = o["payment_frequency_days"]
+                        if pd.isna(pfq): pfq = None
+                        po_list.append(PaymentOption(
+                            payment_option_id=o["payment_option_id"],
+                            request_id=o["request_id"],
+                            payment_method=o["payment_method"],
+                            payment_amount=o["payment_amount"],
+                            number_of_payments=o["number_of_payments"],
+                            first_payment_date=o["first_payment_date"],
+                            payment_frequency_days=pfq,
+                            financing_fee=o["financing_fee"],
+                            total_payable_amount=o["total_payable_amount"]
+                        ))
+            except Exception:
+                po_list = []
+
+            res = aff_eng.evaluate_purchase(parsed.amount, po_list)
             structured_res = {
                 "type": "affordability",
                 "affordability_status": res.status,
@@ -82,11 +110,31 @@ class CopilotOrchestrator:
                 "resulting_balance": res.resulting_balance,
                 "shortfall": res.shortfall,
                 "trade_off": res.trade_off_required,
+                "viable_options": [o.model_dump() for o in res.viable_payment_options],
                 "current_balance": profile.current_available_balance,
                 "minimum_buffer": profile.minimum_balance_to_keep,
                 "projected_cash_flow": pred.projected_cash_flow.projected_cash_flow if pred.projected_cash_flow else 0,
                 "currency": currency,
             }
+            
+            trace = DecisionTrace(
+                observed_fact=f"Current Balance: {profile.current_available_balance}, Buffer: {profile.minimum_balance_to_keep}",
+                calculation=f"Purchase amount: {parsed.amount}",
+                prediction=f"Projected Cash Flow: {pred.projected_cash_flow.projected_cash_flow if pred.projected_cash_flow else 0}",
+                simulation=f"Resulting Balance if paid upfront: {res.resulting_balance}",
+                recommendation=Recommendation(
+                    recommendation_type="AFFORDABILITY",
+                    actionable_text="Consider paying in installments" if res.status == "NOT AFFORDABLE UNDER CURRENT PROJECTION" and len(res.viable_payment_options) > 0 else ("Avoid purchase" if res.status == "NOT AFFORDABLE UNDER CURRENT PROJECTION" else "Proceed with purchase"),
+                    expected_impact=ExpectedImpact(
+                        cash_flow_difference=0,
+                        balance_difference=-parsed.amount,
+                        buffer_status_change="breached" if res.resulting_balance < profile.minimum_balance_to_keep else "maintained"
+                    ),
+                    confidence_level="HIGH",
+                    confidence_reason="Deterministic calculation based on user data."
+                ),
+                supporting_data={"shortfall": res.shortfall}
+            )
 
         elif parsed.intent == IntentType.PAYMENT_OPTION_ANALYSIS:
             if not parsed.amount or parsed.amount <= 0:
@@ -98,7 +146,7 @@ class CopilotOrchestrator:
                 )
             
             try:
-                requests_df = pd.read_csv("data/prototype/requests.csv")
+                requests_df = pd.read_csv(self.loader.data_dir / "requests.csv")
                 req_id = None
                 for _, r in requests_df.iterrows():
                     if r["user_id"] == profile.user_id and abs(r["requested_amount"] - parsed.amount) < 1.0:

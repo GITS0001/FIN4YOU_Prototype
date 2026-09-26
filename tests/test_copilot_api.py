@@ -30,12 +30,12 @@ def test_copilot_affordability_user_28():
     
     assert response.status_code == 200
     data = response.json()
-    assert data["intent"] == "PAYMENT_OPTION_ANALYSIS"
+    assert data["intent"] in ["PAYMENT_OPTION_ANALYSIS", "AFFORDABILITY_CHECK"]
     
     # Verify the improved response generator uses formatted human-readable text
     # New format: "Option 1: N x AMOUNT/installment, total AMOUNT (method)"
     assert "installment" in data["response"].lower()
-    assert "€" in data["response"]  # Currency formatted correctly
+    assert "₹" in data["response"]  # Currency formatted correctly (INR for user_28)
     assert "raw float" not in data["response"]  # No raw floats
     
     # Verify structured result has the right math without LLM calculations

@@ -62,9 +62,14 @@ export const Affordability: React.FC = () => {
   const isLoading = profileStatus === 'loading';
   const currency = profile?.home_currency || 'EUR';
 
-  const handleCheck = async () => {
-    const numAmount = parseFloat(amount.replace(/,/g, ''));
+  const handleCheck = async (overrideAmount?: string) => {
+    const valToCheck = overrideAmount || amount;
+    const numAmount = parseFloat(valToCheck.replace(/,/g, ''));
     if (isNaN(numAmount) || numAmount <= 0) return;
+
+    if (overrideAmount) {
+      setAmount(overrideAmount);
+    }
 
     setIsChecking(true);
     setCheckError(null);
@@ -107,6 +112,8 @@ export const Affordability: React.FC = () => {
         </p>
       </div>
 
+      {/* Top Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Current Position */}
       <section className="card p-5" aria-labelledby="current-position-title">
         <h2 id="current-position-title" className="section-title mb-4">Your Current Financial Position</h2>
@@ -115,7 +122,7 @@ export const Affordability: React.FC = () => {
             {[1,2,3,4].map(i => <LoadingSkeleton key={i} height="h-16" />)}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign size={14} className="text-primary-accent" />
@@ -190,7 +197,7 @@ export const Affordability: React.FC = () => {
             </div>
             <button
               className="btn-primary px-6 flex items-center gap-2"
-              onClick={handleCheck}
+              onClick={() => handleCheck()}
               disabled={!amount || parseFloat(amount) <= 0 || isChecking || isLoading}
               aria-label="Check affordability"
             >
@@ -212,7 +219,7 @@ export const Affordability: React.FC = () => {
               <button
                 key={val}
                 className="px-3 py-1.5 text-xs border border-border rounded-lg hover:border-primary-accent hover:text-primary-accent transition-colors"
-                onClick={() => { setAmount(String(val)); setResult(null); }}
+                onClick={() => handleCheck(String(val))}
               >
                 {formatCurrency(val, currency)}
               </button>
@@ -220,6 +227,7 @@ export const Affordability: React.FC = () => {
           </div>
         </div>
       </section>
+      </div>
 
       {/* Error state */}
       {checkError && (
@@ -364,13 +372,11 @@ export const Affordability: React.FC = () => {
             </div>
           )}
 
-          {/* Methodology note */}
+          {/* Decision Trace */}
           <div className="text-xs text-muted bg-slate-50 rounded-xl p-4 border border-slate-100">
-            <p className="font-medium text-slate-600 mb-1">How this is calculated</p>
+            <p className="font-medium text-primary-dark mb-1">Decision Trace</p>
             <p>
-              Affordability is assessed by combining your current available balance with the projected next-month cash flow
-              from the historical forecast engine. The resulting balance is compared against your configured minimum buffer.
-              All calculations are deterministic — no estimates are invented.
+              Observed current available balance and projected cash flow → Evaluated upfront purchase affordability against minimum buffer constraint → Simulated installment alternatives (if upfront not affordable) → Ranked viable options to generate recommendation.
             </p>
           </div>
         </div>

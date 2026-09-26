@@ -6,11 +6,18 @@ import type {
   MonthlyHistoryResponse,
   AffordabilityResult,
   WhatIfResponse,
+  GlobalFinancialState,
+  FinancialOverrides,
 } from '../types';
 
 export const usersApi = {
   getProfile: async (userId: string): Promise<FinancialProfile> => {
     const response = await apiClient.get<FinancialProfile>(`/api/users/${userId}/profile`);
+    return response.data;
+  },
+
+  updateProfile: async (userId: string, profile: FinancialProfile): Promise<FinancialProfile> => {
+    const response = await apiClient.put<FinancialProfile>(`/api/users/${userId}/profile`, profile);
     return response.data;
   },
 
@@ -45,6 +52,14 @@ export const usersApi = {
     const response = await apiClient.post<WhatIfResponse>(
       `/api/users/${userId}/what-if`,
       { scenario_type, amount }
+    );
+    return response.data;
+  },
+
+  getGlobalState: async (userId: string, overrides?: FinancialOverrides): Promise<GlobalFinancialState> => {
+    const response = await apiClient.post<GlobalFinancialState>(
+      `/api/users/${userId}/financial-state`,
+      overrides || {}
     );
     return response.data;
   },

@@ -46,25 +46,42 @@ class ResponseGenerator:
             amount_str = _fmt(parsed.amount, currency)
             bal_str = _fmt(bal, currency)
             
+            opts = result.get("viable_options", [])
+            opt_text = ""
+            if opts:
+                opt_lines = []
+                for i, o in enumerate(opts[:3], 1):
+                    n = o.get('number_of_payments', 1)
+                    pmt = _fmt(o.get('payment_amount', 0), currency)
+                    method = o.get('payment_method', 'payment')
+                    if n == 1:
+                        opt_lines.append(f"• Option {i}: Full payment of {pmt} ({method})")
+                    else:
+                        opt_lines.append(f"• Option {i}: {n} x {pmt}/mo ({method})")
+                
+                opt_text = (
+                    f"\n\nHere are some affordable alternatives (EMI/Installments) that maintain your safety buffer:\n"
+                    + "\n".join(opt_lines)
+                )
+
             if aff_status == "AFFORDABLE":
                 return (
-                    f"Yes, {amount_str} is affordable based on your current projections.\n\n"
+                    f"Yes, {amount_str} is affordable as a full payment based on your current projections.\n\n"
                     f"After this purchase, your projected balance would be {bal_str}, "
-                    f"which remains above your required safety buffer."
+                    f"which remains above your required safety buffer.{opt_text}"
                 )
             elif aff_status == "POTENTIALLY AFFORDABLE WITH TRADE-OFF":
                 trade_str = _fmt(trade_off, currency)
                 return (
                     f"{amount_str} is potentially affordable, but requires a trade-off.\n\n"
-                    f"Your projected balance after purchase would be {bal_str}. "
-                    f"You would need to reduce discretionary spending by {trade_str} to stay above your minimum buffer."
+                    f"Your projected balance after a full purchase would be {bal_str}. "
+                    f"You would need to reduce discretionary spending by {trade_str} to stay above your minimum buffer.{opt_text}"
                 )
             else:
                 return (
-                    f"No, {amount_str} is not affordable under your current projection.\n\n"
+                    f"No, {amount_str} is not affordable as a single upfront payment under your current projection.\n\n"
                     f"This purchase would bring your projected balance to {bal_str}, "
-                    f"which breaches your required minimum buffer. "
-                    f"Consider an installment plan or delaying the purchase."
+                    f"which breaches your required minimum buffer.{opt_text}"
                 )
 
         elif parsed.intent == IntentType.PAYMENT_OPTION_ANALYSIS:

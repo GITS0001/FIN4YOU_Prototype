@@ -6,7 +6,7 @@ import { usersApi } from '../api/users';
 import { ScenarioComparison } from '../components/whatif/ScenarioComparison';
 import { ErrorState, EmptyState } from '../components/shared/ErrorState';
 import { formatCurrency } from '../utils/format';
-import { GitFork, Loader2, RotateCcw } from 'lucide-react';
+import { GitFork, Loader2, RotateCcw, TrendingUp } from 'lucide-react';
 import type { WhatIfResponse } from '../types';
 
 type ScenarioType = 'reduce_expense' | 'add_purchase';
@@ -52,9 +52,14 @@ export const WhatIf: React.FC = () => {
   const currency = profile?.home_currency || 'EUR';
   const pcf = prediction?.projected_cash_flow;
 
-  const runSimulation = async () => {
-    const numAmount = parseFloat(amount);
+  const runSimulation = async (overrideAmount?: string) => {
+    const valToSimulate = overrideAmount || amount;
+    const numAmount = parseFloat(valToSimulate);
     if (isNaN(numAmount) || numAmount <= 0) return;
+
+    if (overrideAmount) {
+      setAmount(overrideAmount);
+    }
 
     setIsSimulating(true);
     setSimError(null);
@@ -97,26 +102,27 @@ export const WhatIf: React.FC = () => {
         </p>
       </div>
 
-      {/* Current Baseline */}
+      {/* Grid container for Baseline and Scenario Builder */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {!isLoading && pcf && (
         <section className="card p-5 bg-slate-50 border border-slate-200" aria-labelledby="baseline-title">
           <h2 id="baseline-title" className="section-title mb-4">Current Baseline (Next Month)</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-white p-4 rounded-xl border border-slate-100">
               <p className="text-xs text-muted mb-1">Projected Income</p>
-              <p className="text-base font-bold text-positive">{formatCurrency(pcf.projected_income, currency)}</p>
+              <p className="text-lg font-bold text-positive">{formatCurrency(pcf.projected_income, currency)}</p>
             </div>
-            <div>
+            <div className="bg-white p-4 rounded-xl border border-slate-100">
               <p className="text-xs text-muted mb-1">Variable Expenses</p>
-              <p className="text-base font-bold text-warning">{formatCurrency(pcf.projected_expenses, currency)}</p>
+              <p className="text-lg font-bold text-warning">{formatCurrency(pcf.projected_expenses, currency)}</p>
             </div>
-            <div>
+            <div className="bg-white p-4 rounded-xl border border-slate-100">
               <p className="text-xs text-muted mb-1">Known Obligations</p>
-              <p className="text-base font-bold text-danger">{formatCurrency(pcf.known_obligations, currency)}</p>
+              <p className="text-lg font-bold text-danger">{formatCurrency(pcf.known_obligations, currency)}</p>
             </div>
-            <div>
+            <div className="bg-white p-4 rounded-xl border border-slate-100">
               <p className="text-xs text-muted mb-1">Net Cash Flow</p>
-              <p className={`text-base font-bold ${pcf.projected_cash_flow >= 0 ? 'text-positive' : 'text-danger'}`}>
+              <p className={`text-lg font-bold ${pcf.projected_cash_flow >= 0 ? 'text-positive' : 'text-danger'}`}>
                 {formatCurrency(pcf.projected_cash_flow, currency)}
               </p>
             </div>
@@ -183,7 +189,7 @@ export const WhatIf: React.FC = () => {
             </div>
             <button
               className="btn-primary px-6 flex items-center gap-2"
-              onClick={runSimulation}
+              onClick={() => runSimulation()}
               disabled={!amount || parseFloat(amount) <= 0 || isSimulating || isLoading}
               aria-label="Run simulation"
             >
@@ -212,7 +218,7 @@ export const WhatIf: React.FC = () => {
                 <button
                   key={val}
                   className="px-3 py-1.5 text-xs border border-border rounded-lg hover:border-primary-accent hover:text-primary-accent transition-colors"
-                  onClick={() => { setAmount(String(val)); setResult(null); }}
+                  onClick={() => runSimulation(String(val))}
                 >
                   {formatCurrency(val, currency)}
                 </button>
@@ -221,6 +227,7 @@ export const WhatIf: React.FC = () => {
           </div>
         )}
       </section>
+      </div>
 
       {/* Sim Error */}
       {simError && (
@@ -272,37 +279,50 @@ export const WhatIf: React.FC = () => {
           />
 
           {/* Impact summary */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="card p-4">
-              <p className="text-xs text-muted mb-1">Cash Flow Change</p>
-              <p className={`text-lg font-bold ${result.impact.cash_flow_difference >= 0 ? 'text-positive' : 'text-danger'}`}>
-                {result.impact.cash_flow_difference >= 0 ? '+' : ''}{formatCurrency(result.impact.cash_flow_difference, currency)}
-              </p>
+          <div className="card p-5 mt-6 border-l-4 border-l-primary-accent bg-blue-50/20">
+            <h3 className="text-sm font-bold text-primary-dark mb-3 flex items-center gap-2">
+              <TrendingUp size={16} className="text-primary-accent" />
+              Expected Impact
+            </h3>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div>
+                <p className="text-xs text-muted mb-1">Cash Flow Change</p>
+                <p className={`text-lg font-bold ${result.impact.cash_flow_difference >= 0 ? 'text-positive' : 'text-danger'}`}>
+                  {result.impact.cash_flow_difference >= 0 ? '+' : ''}{formatCurrency(result.impact.cash_flow_difference, currency)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted mb-1">Balance Change</p>
+                <p className={`text-lg font-bold ${result.impact.balance_difference >= 0 ? 'text-positive' : 'text-danger'}`}>
+                  {result.impact.balance_difference >= 0 ? '+' : ''}{formatCurrency(result.impact.balance_difference, currency)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted mb-1">Buffer Status</p>
+                <p className={`text-sm font-semibold ${
+                  result.impact.buffer_status_change === 'maintained' || result.impact.buffer_status_change === 'restored'
+                    ? 'text-positive' : 'text-warning'
+                }`}>
+                  {result.impact.buffer_status_change.replace(/_/g, ' ')}
+                </p>
+              </div>
             </div>
-            <div className="card p-4">
-              <p className="text-xs text-muted mb-1">Balance Change</p>
-              <p className={`text-lg font-bold ${result.impact.balance_difference >= 0 ? 'text-positive' : 'text-danger'}`}>
-                {result.impact.balance_difference >= 0 ? '+' : ''}{formatCurrency(result.impact.balance_difference, currency)}
-              </p>
-            </div>
-            <div className="card p-4">
-              <p className="text-xs text-muted mb-1">Buffer Status</p>
-              <p className={`text-sm font-semibold ${
-                result.impact.buffer_status_change === 'maintained' || result.impact.buffer_status_change === 'restored'
-                  ? 'text-positive' : 'text-warning'
-              }`}>
-                {result.impact.buffer_status_change.replace(/_/g, ' ')}
+            
+            <div className="pt-4 border-t border-slate-200">
+              <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider mb-2">Recommendation</h4>
+              <p className="text-sm text-primary-dark">
+                {result.impact.buffer_status_change === 'breached' || result.impact.buffer_status_change === 'improved_but_still_breached'
+                  ? 'Avoid this change if possible. It will place your account balance below your required minimum safety buffer.'
+                  : 'This change maintains your financial health and safety buffer.'}
               </p>
             </div>
           </div>
 
-          {/* Methodology note */}
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-            <p className="text-sm text-primary-dark font-medium mb-1">Backend-Powered Simulation</p>
+          {/* Methodology note (acting as decision trace info here) */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <p className="text-sm text-primary-dark font-medium mb-1">Decision Trace</p>
             <p className="text-xs text-muted">
-              This simulation was run on the backend using the deterministic WhatIfSimulator and ImpactEngine.
-              Income figures are from the ML forecast model. Expense changes are applied as adjustments to the
-              baseline projected expenses. No calculations were performed in the browser.
+              Observed baseline income and expenses → Applied scenario delta ({formatCurrency(parseFloat(amount), currency)}) → Simulated resulting cash flow → Compared against minimum buffer limit to generate recommendation.
             </p>
           </div>
         </div>
@@ -311,9 +331,9 @@ export const WhatIf: React.FC = () => {
       {/* Empty state with copilot tip */}
       {!result && !simError && (
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-          <p className="text-sm text-primary-dark font-medium mb-1">💡 Try the AI Copilot</p>
+          <p className="text-sm text-primary-dark font-medium mb-1">💡 Try Artha AI</p>
           <p className="text-xs text-muted">
-            You can also ask the AI Copilot natural-language questions like{' '}
+            You can also ask Artha AI natural-language questions like{' '}
             <em>"What if I spend {formatCurrency(pcf ? Math.round(pcf.projected_expenses * 0.2) : 100, currency)} less on dining?"</em>
           </p>
         </div>

@@ -4,7 +4,7 @@ import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 
 export const AppShell: React.FC = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -16,19 +16,18 @@ export const AppShell: React.FC = () => {
 
       {/* Main area */}
       <div
-        className="flex flex-col flex-1 min-w-0 overflow-hidden"
-        style={{ marginLeft: 'var(--sidebar-width)' }}
+        className={`flex flex-col flex-1 min-w-0 overflow-hidden transition-all duration-250 ${sidebarOpen ? 'lg:ml-[var(--sidebar-width)]' : 'ml-0'}`}
       >
-        <Topbar onMenuClick={() => setSidebarOpen(true)} />
+        <Topbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} isOpen={sidebarOpen} />
 
         {/* Page content */}
         <main
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto bg-background"
           style={{ paddingTop: 'var(--topbar-height)' }}
           id="main-content"
           role="main"
         >
-          <div className="p-5 md:p-6 lg:p-8 max-w-[1440px] mx-auto w-full">
+          <div className="p-4 sm:p-6 md:p-8 lg:p-8 max-w-[1600px] mx-auto w-full">
             <Outlet />
           </div>
         </main>

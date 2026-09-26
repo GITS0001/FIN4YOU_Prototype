@@ -94,7 +94,11 @@ export const Forecast: React.FC = () => {
             )}
             <div className="flex-1">
               <h2 id="gap-detection-title" className="section-title mb-1">
-                {gap.detected ? 'Potential Cash Flow Gap Detected' : 'Cash Flow is Healthy'}
+                {gap.detected 
+                  ? 'Potential Cash Flow Gap Detected' 
+                  : pcf && pcf.projected_cash_flow < 0 
+                    ? 'Negative Cash Flow, but Buffer Sufficient'
+                    : 'Projected Buffer Status: Maintained'}
               </h2>
               {gap.detected ? (
                 <p className="text-sm text-muted mb-4">
@@ -102,7 +106,9 @@ export const Forecast: React.FC = () => {
                 </p>
               ) : (
                 <p className="text-sm text-muted">
-                  Your projected cash flow remains above your required buffer. No action needed.
+                  {pcf && pcf.projected_cash_flow < 0 
+                    ? 'You are projected to spend more than you earn, but your reserves remain above your required buffer. Monitor your expenses.' 
+                    : 'Your projected cash flow remains above your required buffer. No action needed.'}
                 </p>
               )}
 

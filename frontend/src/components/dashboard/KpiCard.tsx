@@ -19,7 +19,7 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   value,
   subValue,
   icon: Icon,
-  iconColor = 'text-primary-accent bg-blue-50',
+  iconColor = 'text-primary-accent bg-primary-accent/10',
   trend,
   trendLabel,
   isLoading,

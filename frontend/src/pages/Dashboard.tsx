@@ -15,7 +15,6 @@ import { usePrediction } from '../hooks/usePrediction';
 import { KpiCard } from '../components/dashboard/KpiCard';
 import { FinancialHealthCard } from '../components/dashboard/FinancialHealthCard';
 import { SpendingChart } from '../components/dashboard/SpendingChart';
-import { InsightCard } from '../components/dashboard/InsightCard';
 import { ErrorState } from '../components/shared/ErrorState';
 import { formatCurrency, formatPercent, getGreeting } from '../utils/format';
 import { useNavigate } from 'react-router-dom';
@@ -121,7 +120,7 @@ export const Dashboard: React.FC = () => {
           onClick={() => navigate('/copilot')}
         >
           <Activity size={15} aria-hidden="true" />
-          Ask AI Copilot
+          Ask Artha AI
         </button>
       </div>
 
@@ -146,7 +145,7 @@ export const Dashboard: React.FC = () => {
       <div className="flex flex-col gap-5 mt-5">
         
         {/* ROW 2: Financial Health Indicators + Upcoming Cash Flow / Risk */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FinancialHealthCard
             state={state}
             profile={profile}
@@ -171,13 +170,13 @@ export const Dashboard: React.FC = () => {
 
               {!isLoading && pcf && (
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div className="bg-background p-3 rounded-xl border border-border">
                     <p className="text-xs text-muted mb-1">Projected Income</p>
                     <p className="text-base font-semibold text-positive">
                       {formatCurrency(pcf.projected_income, currency)}
                     </p>
                   </div>
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div className="bg-background p-3 rounded-xl border border-border">
                     <p className="text-xs text-muted mb-1">Total Outflows</p>
                     <p className="text-base font-semibold text-danger">
                       {formatCurrency(pcf.projected_expenses + pcf.known_obligations, currency)}
@@ -187,7 +186,7 @@ export const Dashboard: React.FC = () => {
               )}
 
               {!isLoading && pcf && (
-                <div className="flex items-center justify-between p-3 bg-primary-dark/5 rounded-xl border border-primary-dark/10">
+                <div className="flex items-center justify-between p-3 bg-primary-accent/10 rounded-xl border border-primary-accent/20">
                   <div>
                     <p className="text-xs text-muted mb-1">Net Cash Flow</p>
                     <p className={`text-lg font-bold ${pcf.projected_cash_flow >= 0 ? 'text-positive' : 'text-danger'}`}>
@@ -218,8 +217,8 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* ROW 3: Income vs Expenses proportion + Spending breakdown */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="card p-5 flex flex-col">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="card p-6 flex flex-col">
             <div className="flex items-center justify-between mb-1">
               <h2 className="section-title">Income vs Expenses</h2>
               <span className="text-xs text-muted px-2 py-0.5 bg-slate-100 rounded-full">Observed period total</span>
@@ -287,15 +286,46 @@ export const Dashboard: React.FC = () => {
           />
         </div>
 
-        {/* ROW 4: Insights + Obligations */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <InsightCard
-            state={state}
-            prediction={prediction}
-            profile={profile}
-            isLoading={isLoading || predStatus === 'loading'}
-          />
-          <div className="card p-5">
+        {/* ROW 4: What Needs Attention + Obligations */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* What Needs Attention Section */}
+          <div className="card p-6 border-t-4 border-t-warning flex flex-col justify-start bg-amber-50/20 self-start">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle size={18} className="text-warning" />
+              <h2 className="section-title">What Needs Attention</h2>
+            </div>
+            
+            {isLoading ? (
+              <div className="skeleton h-32 w-full" />
+            ) : state && ((state.expense_ratio || 0) > 0.8 || gap?.detected || (state.savings ?? 0) < 0) ? (
+              <div className="flex flex-col gap-3">
+                {(state.expense_ratio || 0) > 0.8 && (
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-amber-100">
+                    <p className="text-sm font-semibold text-amber-900 mb-1">High Expense Ratio</p>
+                    <p className="text-sm text-muted">You are spending {formatPercent(state.expense_ratio!)} of your income. Consider reducing discretionary expenses.</p>
+                  </div>
+                )}
+                {gap?.detected && (
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-amber-100">
+                    <p className="text-sm font-semibold text-amber-900 mb-1">Cash Flow Pressure</p>
+                    <p className="text-sm text-muted">Next month's projected cash flow puts you below your minimum buffer constraint.</p>
+                  </div>
+                )}
+                {(state?.savings ?? 0) < 0 && (
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-amber-100">
+                    <p className="text-sm font-semibold text-amber-900 mb-1">Negative Net Savings</p>
+                    <p className="text-sm text-muted">Your observed total expenses exceed your income. You are drawing down on your reserves.</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center bg-white rounded-xl border border-slate-100 p-6">
+                <p className="text-sm text-muted">No immediate attention required. Finances are stable.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="card p-6 flex flex-col justify-start">
             <h2 className="section-title mb-1">Upcoming Obligations</h2>
             <p className="text-xs text-muted mb-4">Fixed recurring commitments projected for next month</p>
             {isLoading ? (
@@ -337,7 +367,7 @@ export const Dashboard: React.FC = () => {
         <div className="card p-6 bg-gradient-to-br from-primary-dark to-[#1e274a] text-white">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-xl font-bold mb-1">Financial Intelligence Copilot</h2>
+              <h2 className="text-xl font-bold mb-1">Financial Intelligence with Artha AI</h2>
               <p className="text-white/80 text-sm">
                 Ask natural-language questions. Get structured, evidence-backed financial answers.
               </p>
@@ -347,7 +377,7 @@ export const Dashboard: React.FC = () => {
               onClick={() => navigate('/copilot')}
             >
               <Activity size={16} />
-              Open Copilot
+              Open Artha AI
             </button>
           </div>
           

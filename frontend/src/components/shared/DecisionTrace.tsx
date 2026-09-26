@@ -31,31 +31,31 @@ export const DecisionTrace: React.FC<DecisionTraceProps> = ({ trace, currency = 
       icon: Eye,
       label: 'Observed',
       content: trace.observed_fact,
-      color: 'text-primary-accent bg-blue-50',
+      color: 'text-primary-accent bg-primary-accent/10',
     },
     {
       icon: Calculator,
       label: 'Calculated',
       content: trace.calculation,
-      color: 'text-amber-600 bg-amber-50',
+      color: 'text-warning bg-warning/10',
     },
     {
       icon: TrendingUp,
       label: 'Predicted',
       content: trace.prediction,
-      color: 'text-purple-600 bg-purple-50',
+      color: 'text-purple-500 bg-purple-500/10',
     },
     {
       icon: GitBranch,
       label: 'Simulated',
       content: trace.simulation,
-      color: 'text-emerald-600 bg-emerald-50',
+      color: 'text-positive bg-positive/10',
     },
     {
       icon: Lightbulb,
       label: 'Recommended',
       content: trace.recommendation.actionable_text,
-      color: 'text-positive bg-green-50',
+      color: 'text-positive bg-positive/10',
     },
   ];
 

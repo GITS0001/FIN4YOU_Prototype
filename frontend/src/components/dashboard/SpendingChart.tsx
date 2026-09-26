@@ -36,7 +36,7 @@ const CustomTooltip = ({
   if (active && payload && payload.length) {
     const item = payload[0];
     return (
-      <div className="bg-white border border-border rounded-lg px-3 py-2 shadow-dropdown text-sm">
+      <div className="bg-card-bg border border-border rounded-lg px-3 py-2 shadow-dropdown text-sm">
         <p className="font-semibold text-primary-dark">{formatCategory(item.name)}</p>
         <p className="text-muted">{formatCurrency(item.value, currency)}</p>
         <p className="text-xs text-muted">{item.payload.percentage.toFixed(1)}% of total</p>
@@ -80,16 +80,16 @@ export const SpendingChart: React.FC<SpendingChartProps> = ({
 
       <div className="flex flex-col lg:flex-row gap-4 items-start">
         {/* Chart */}
-        <div className="w-full lg:w-48 h-48 flex-shrink-0">
+        <div className="w-full lg:w-64 h-64 flex-shrink-0 flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={chartData}
                 cx="50%"
                 cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={2}
+                innerRadius={70}
+                outerRadius={100}
+                paddingAngle={3}
                 dataKey="value"
                 aria-label="Spending by category"
               >

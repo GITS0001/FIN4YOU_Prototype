@@ -228,3 +228,26 @@ export interface ApiError {
   message: string;
   status?: number;
 }
+
+export interface FinancialOverrides {
+  income_override?: number;
+  balance_override?: number;
+  minimum_buffer_override?: number;
+  expenses_override?: number;
+}
+
+export interface RiskStatus {
+  buffer_status: string;
+  cash_flow_status: string;
+}
+
+export interface GlobalFinancialState {
+  user_id: string;
+  currency: string;
+  baseline: FinancialProfile;
+  current_state: FinancialState;
+  prediction: PredictionEngineResult;
+  risk: RiskStatus;
+  confidence: number;
+  data_sources: string[];
+}

@@ -328,6 +328,8 @@ export const FinancialStatement: React.FC = () => {
         </section>
       )}
 
+      {/* Bottom Grid for Anomalies and Preferences */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Anomalies */}
       {anomalies.length > 0 && (
         <section className="card p-5" aria-labelledby="anomalies-title">
@@ -394,6 +396,7 @@ export const FinancialStatement: React.FC = () => {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 };

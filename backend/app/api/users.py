@@ -3,7 +3,7 @@ from typing import Optional, List
 from app.ingestion.loader import DataLoader
 from app.financial.state import FinancialStateEngine
 from app.ml.forecasting import PredictionEngine
-from app.schemas.financial import FinancialState, PredictionEngineResult, FinancialProfile
+from app.schemas.financial import FinancialState, PredictionEngineResult, FinancialProfile, GlobalFinancialState, FinancialOverrides, RiskStatus
 from app.schemas.decision import AffordabilityResult
 from app.decision.affordability import AffordabilityEngine
 from app.decision.simulation import WhatIfSimulator
@@ -61,6 +61,14 @@ def get_user_profile(user_id: str):
     if not profile:
         raise HTTPException(status_code=404, detail="User not found")
     return profile
+
+@router.put("/{user_id}/profile", response_model=FinancialProfile)
+def update_user_profile(user_id: str, updated_profile: FinancialProfile):
+    for i, p in enumerate(profiles):
+        if p.user_id == user_id:
+            profiles[i] = updated_profile
+            return updated_profile
+    raise HTTPException(status_code=404, detail="User not found")
 
 
 @router.get("/{user_id}/state", response_model=FinancialState)
@@ -268,4 +276,76 @@ def run_what_if(user_id: str, request: WhatIfRequest):
         scenario=scenario,
         impact=impact,
         currency=profile.home_currency,
+    )
+
+@router.post("/{user_id}/financial-state", response_model=GlobalFinancialState)
+def calculate_global_financial_state(user_id: str, overrides: FinancialOverrides):
+    profile = next((p for p in profiles if p.user_id == user_id), None)
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    from copy import deepcopy
+    sim_profile = deepcopy(profile)
+    
+    if overrides.balance_override is not None:
+        sim_profile.current_available_balance = overrides.balance_override
+    if overrides.minimum_buffer_override is not None:
+        sim_profile.minimum_balance_to_keep = overrides.minimum_buffer_override
+        
+    user_events = [e for e in events if e.user_id == user_id]
+    
+    # Calculate current historical totals for scaling
+    current_income = sum(e.amount for e in user_events if e.event_type == "income")
+    current_expenses = 0.0
+    for e in user_events:
+        if e.direction == "debit":
+            current_expenses += e.amount
+        elif e.event_type == "refund":
+            current_expenses -= e.amount
+            
+    sim_events = deepcopy(user_events)
+    
+    # Apply income scaling
+    if overrides.income_override is not None and current_income > 0:
+        income_scale = overrides.income_override / current_income
+        for e in sim_events:
+            if e.event_type == "income":
+                e.amount = e.amount * income_scale
+                
+    # Apply expense scaling
+    if overrides.expenses_override is not None and current_expenses > 0:
+        expense_scale = overrides.expenses_override / current_expenses
+        for e in sim_events:
+            if e.direction == "debit":
+                e.amount = e.amount * expense_scale
+            elif e.event_type == "refund":
+                e.amount = e.amount * expense_scale
+                
+    # Calculate updated state
+    current_state = FinancialStateEngine(user_id).calculate_state(sim_events)
+    
+    # Calculate updated prediction
+    prediction = PredictionEngine().run_prediction(sim_events, sim_profile)
+    
+    # Risk
+    buffer_status = "ok"
+    cash_flow_status = "ok"
+    if prediction.gap_detection:
+        if prediction.gap_detection.detected:
+            buffer_status = "breached"
+    if prediction.projected_cash_flow:
+        if prediction.projected_cash_flow.projected_cash_flow < 0:
+            cash_flow_status = "negative"
+            
+    risk = RiskStatus(buffer_status=buffer_status, cash_flow_status=cash_flow_status)
+    
+    return GlobalFinancialState(
+        user_id=user_id,
+        currency=sim_profile.home_currency,
+        baseline=sim_profile,
+        current_state=current_state,
+        prediction=prediction,
+        risk=risk,
+        confidence=current_state.data_quality_confidence,
+        data_sources=["prototype_data", "user_overrides"]
     )

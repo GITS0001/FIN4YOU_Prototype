@@ -23,7 +23,7 @@ export const PaymentOptionCard: React.FC<PaymentOptionCardProps> = ({
       className={`
         w-full text-left card p-4 transition-all duration-150 border-2
         ${isSelected
-          ? 'border-primary-accent bg-blue-50/30'
+          ? 'border-primary-accent bg-primary-accent/10'
           : 'border-transparent hover:border-border hover:shadow-card-hover'
         }
       `}
@@ -34,7 +34,7 @@ export const PaymentOptionCard: React.FC<PaymentOptionCardProps> = ({
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <span className="badge-info mb-1">{option.payment_method.replace(/_/g, ' ')}</span>
-          <p className="text-[15px] font-semibold text-primary-dark mt-1">
+          <p className="text-base font-semibold text-primary-dark mt-1">
             {formatCurrency(option.payment_amount, currency)}
             {isInstallment && (
               <span className="text-xs font-normal text-muted"> / payment</span>
