@@ -12,4 +12,9 @@ def query_copilot(request: CopilotRequest):
     if not request.message:
         raise HTTPException(status_code=400, detail="Missing message")
     
-    return orchestrator.process_query(request)
+    try:
+        return orchestrator.process_query(request)
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))

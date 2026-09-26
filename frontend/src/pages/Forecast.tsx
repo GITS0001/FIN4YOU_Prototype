@@ -2,6 +2,7 @@ import React from 'react';
 import { usePrediction } from '../hooks/usePrediction';
 import { useFinancialProfile } from '../hooks/useFinancialProfile';
 import { useFinancialState } from '../hooks/useFinancialState';
+import { useForecastHistory } from '../hooks/useForecastHistory';
 import { ForecastChart } from '../components/forecast/ForecastChart';
 import { ErrorState, EmptyState } from '../components/shared/ErrorState';
 import { LoadingSkeleton } from '../components/shared/LoadingSkeleton';
@@ -12,18 +13,20 @@ export const Forecast: React.FC = () => {
   const { data: profile, status: profileStatus, refetch: refetchProfile } = useFinancialProfile();
   const { data: state, status: stateStatus, refetch: refetchState } = useFinancialState();
   const { data: prediction, status: predStatus, error: predError, refetch: refetchPred } = usePrediction();
+  const { data: history, status: histStatus, refetch: refetchHist } = useForecastHistory();
 
-  const isLoading = profileStatus === 'loading' || stateStatus === 'loading' || predStatus === 'loading';
-  const hasError = predStatus === 'error';
+  const isLoading = profileStatus === 'loading' || stateStatus === 'loading' || predStatus === 'loading' || histStatus === 'loading';
+  const hasError = predStatus === 'error' || histStatus === 'error';
 
   const handleRefresh = () => {
     refetchProfile();
     refetchState();
     refetchPred();
+    refetchHist();
   };
 
   if (hasError) {
-    return <ErrorState type="data" message={predError?.message} onRetry={handleRefresh} />;
+    return <ErrorState type="data" message={predError?.message || 'Error loading forecast'} onRetry={handleRefresh} />;
   }
 
   const currency = profile?.home_currency || 'USD';
@@ -72,8 +75,7 @@ export const Forecast: React.FC = () => {
 
       {/* Forecast Chart */}
       <ForecastChart
-        prediction={prediction}
-        state={state}
+        history={history}
         profile={profile}
         isLoading={isLoading}
       />

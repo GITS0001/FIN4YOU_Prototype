@@ -207,6 +207,41 @@ export const Insights: React.FC = () => {
           </div>
         </section>
       )}
+      {/* Actionable Observations */}
+      {!isLoading && profile && (
+        <section className="card p-5" aria-labelledby="observations-title">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity size={16} className="text-primary-accent" aria-hidden="true" />
+            <h2 id="observations-title" className="section-title">Actionable Observations</h2>
+          </div>
+          <div className="space-y-4">
+            {profile.expense_categories_user_is_willing_to_reduce.length > 0 && (
+              <div className="p-4 bg-primary-light/10 rounded-lg border border-primary-light/20">
+                <h3 className="text-sm font-semibold text-primary-dark mb-1">Observed spending pressure</h3>
+                <p className="text-sm text-muted mb-3">
+                  Based on your profile, you indicated a willingness to reduce spending in these categories. Consider reallocating these funds to improve your cash flow buffer.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {profile.expense_categories_user_is_willing_to_reduce.map(cat => (
+                    <span key={cat} className="badge-neutral border border-border">
+                      {formatCategory(cat)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {state && state.expense_ratio > 0.8 && (
+              <div className="p-4 bg-warning/10 rounded-lg border border-warning/20">
+                <h3 className="text-sm font-semibold text-warning-dark mb-1">High Expense Ratio</h3>
+                <p className="text-sm text-warning-dark">
+                  Your expenses currently consume {formatPercent(state.expense_ratio)} of your income. This leaves a narrow margin for unexpected costs. Focus on reducing discretionary spending.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 };

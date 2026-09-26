@@ -28,7 +28,7 @@ export const AppShell: React.FC = () => {
           id="main-content"
           role="main"
         >
-          <div className="p-5 md:p-6 lg:p-8 max-w-screen-xl mx-auto">
+          <div className="p-5 md:p-6 lg:p-8 max-w-[1440px] mx-auto w-full">
             <Outlet />
           </div>
         </main>

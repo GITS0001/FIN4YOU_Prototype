@@ -28,4 +28,4 @@ apiClient.interceptors.response.use(
   }
 );
 
-export const DEMO_USER_ID = import.meta.env.VITE_DEMO_USER_ID || 'user_01';
+export const DEMO_USER_ID = import.meta.env.VITE_DEMO_USER_ID || 'user_28';

@@ -64,6 +64,8 @@ class DataLoader:
                 df[col] = ''
             df[col] = df[col].fillna('')
             
+        # Convert any remaining NaNs (like in max_installment_months) to None
+        df = df.where(pd.notnull(df), None)
         records = df.to_dict(orient='records')
         
         profiles = []

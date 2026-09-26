@@ -53,6 +53,26 @@ function deriveInsights(
     });
   }
 
+  // Negative savings rate / High expense ratio
+  if (state.savings_rate < 0 || state.expenses > state.income) {
+    insights.push({
+      id: 'negative-savings',
+      icon: AlertTriangle,
+      title: 'Expenses exceed income',
+      description: `Your expenses (${formatCurrency(state.expenses, currency)}) are higher than your income (${formatCurrency(state.income, currency)}), leading to a negative savings rate.`,
+      severity: 'danger',
+      action: { label: 'View Affordability', path: '/affordability' },
+    });
+  } else if (state.savings_rate < 0.05) {
+    insights.push({
+      id: 'low-savings',
+      icon: Info,
+      title: 'Low savings rate',
+      description: `Your savings rate is very low (${(state.savings_rate * 100).toFixed(1)}%). Consider reducing discretionary spending.`,
+      severity: 'warning',
+    });
+  }
+
   // Anomalies
   const detectedAnomalies = state.anomalies.filter((a) => a.is_anomaly);
   if (detectedAnomalies.length > 0) {

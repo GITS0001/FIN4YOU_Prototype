@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usersApi } from '../api/users';
-import { DEMO_USER_ID } from '../api/client';
+import { useSelectedUser } from '../context/UserContext';
 import type { FinancialProfile, ApiStatus, ApiError } from '../types';
 
-export function useFinancialProfile(userId: string = DEMO_USER_ID) {
+export function useFinancialProfile() {
+  const { selectedUserId } = useSelectedUser();
   const [data, setData] = useState<FinancialProfile | null>(null);
   const [status, setStatus] = useState<ApiStatus>('idle');
   const [error, setError] = useState<ApiError | null>(null);
@@ -12,7 +13,7 @@ export function useFinancialProfile(userId: string = DEMO_USER_ID) {
     setStatus('loading');
     setError(null);
     try {
-      const profile = await usersApi.getProfile(userId);
+      const profile = await usersApi.getProfile(selectedUserId);
       setData(profile);
       setStatus('success');
     } catch (err) {
@@ -20,7 +21,7 @@ export function useFinancialProfile(userId: string = DEMO_USER_ID) {
       setError(apiError);
       setStatus('error');
     }
-  }, [userId]);
+  }, [selectedUserId]);
 
   useEffect(() => {
     fetch();

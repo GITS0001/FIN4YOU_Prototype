@@ -36,6 +36,14 @@ class FinancialProfile(BaseModel):
     payment_methods_user_will_consider: List[str]
     max_installment_months: Optional[float] = None
 
+    @field_validator('max_installment_months', mode='before')
+    @classmethod
+    def convert_nan_to_none(cls, v):
+        import math
+        if isinstance(v, float) and math.isnan(v):
+            return None
+        return v
+
     @field_validator(
         'financial_priorities', 
         'expense_categories_to_protect', 

@@ -1,5 +1,12 @@
 import { apiClient } from './client';
-import type { FinancialProfile, FinancialState, PredictionEngineResult } from '../types';
+import type {
+  FinancialProfile,
+  FinancialState,
+  PredictionEngineResult,
+  MonthlyHistoryResponse,
+  AffordabilityResult,
+  WhatIfResponse,
+} from '../types';
 
 export const usersApi = {
   getProfile: async (userId: string): Promise<FinancialProfile> => {
@@ -14,6 +21,31 @@ export const usersApi = {
 
   getPrediction: async (userId: string): Promise<PredictionEngineResult> => {
     const response = await apiClient.get<PredictionEngineResult>(`/api/users/${userId}/prediction`);
+    return response.data;
+  },
+
+  getForecastHistory: async (userId: string): Promise<MonthlyHistoryResponse> => {
+    const response = await apiClient.get<MonthlyHistoryResponse>(`/api/users/${userId}/forecast/history`);
+    return response.data;
+  },
+
+  checkAffordability: async (userId: string, amount: number): Promise<AffordabilityResult> => {
+    const response = await apiClient.post<AffordabilityResult>(
+      `/api/users/${userId}/affordability`,
+      { amount }
+    );
+    return response.data;
+  },
+
+  runWhatIf: async (
+    userId: string,
+    scenario_type: 'reduce_expense' | 'add_purchase',
+    amount: number
+  ): Promise<WhatIfResponse> => {
+    const response = await apiClient.post<WhatIfResponse>(
+      `/api/users/${userId}/what-if`,
+      { scenario_type, amount }
+    );
     return response.data;
   },
 };

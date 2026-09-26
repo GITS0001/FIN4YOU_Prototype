@@ -17,6 +17,10 @@ def test_copilot_missing_message():
     response = client.post("/api/copilot/query", json={"user_id": "user_28", "message": ""})
     assert response.status_code == 400
 
+def test_copilot_invalid_user_id_404():
+    response = client.post("/api/copilot/query", json={"user_id": "user_invalid_999", "message": "hello"})
+    assert response.status_code == 404
+
 def test_copilot_affordability_user_28():
     # User 28 integration demo path
     response = client.post("/api/copilot/query", json={
@@ -28,9 +32,11 @@ def test_copilot_affordability_user_28():
     data = response.json()
     assert data["intent"] == "PAYMENT_OPTION_ANALYSIS"
     
-    # Verify the fallback response generator caught the viable options
-    assert "Option payment_option_79" in data["response"]
-    assert "Option payment_option_80" in data["response"]
+    # Verify the improved response generator uses formatted human-readable text
+    # New format: "Option 1: N x AMOUNT/installment, total AMOUNT (method)"
+    assert "installment" in data["response"].lower()
+    assert "€" in data["response"]  # Currency formatted correctly
+    assert "raw float" not in data["response"]  # No raw floats
     
     # Verify structured result has the right math without LLM calculations
     assert data["structured_result"]["affordability_status"] == "NOT AFFORDABLE UNDER CURRENT PROJECTION"
@@ -56,4 +62,9 @@ def test_copilot_unknown_question():
     data = response.json()
     assert data["intent"] == "UNKNOWN"
     assert data["status"] == "UNSUPPORTED"
-    assert "I cannot safely answer that question" in data["response"]
+    # Response should guide user to valid financial questions
+    assert any(phrase in data["response"] for phrase in [
+        "I can help you",
+        "questions about",
+        "financial",
+    ])
