@@ -2,6 +2,7 @@ import React from 'react';
 import { usePrediction } from '../hooks/usePrediction';
 import { useFinancialProfile } from '../hooks/useFinancialProfile';
 import { useFinancialState } from '../hooks/useFinancialState';
+import { useForecastHistory } from '../hooks/useForecastHistory';
 import { ForecastChart } from '../components/forecast/ForecastChart';
 import { ErrorState, EmptyState } from '../components/shared/ErrorState';
 import { LoadingSkeleton } from '../components/shared/LoadingSkeleton';
@@ -12,18 +13,20 @@ export const Forecast: React.FC = () => {
   const { data: profile, status: profileStatus, refetch: refetchProfile } = useFinancialProfile();
   const { data: state, status: stateStatus, refetch: refetchState } = useFinancialState();
   const { data: prediction, status: predStatus, error: predError, refetch: refetchPred } = usePrediction();
+  const { data: history, status: histStatus, refetch: refetchHist } = useForecastHistory();
 
-  const isLoading = profileStatus === 'loading' || stateStatus === 'loading' || predStatus === 'loading';
-  const hasError = predStatus === 'error';
+  const isLoading = profileStatus === 'loading' || stateStatus === 'loading' || predStatus === 'loading' || histStatus === 'loading';
+  const hasError = predStatus === 'error' || histStatus === 'error';
 
   const handleRefresh = () => {
     refetchProfile();
     refetchState();
     refetchPred();
+    refetchHist();
   };
 
   if (hasError) {
-    return <ErrorState type="data" message={predError?.message} onRetry={handleRefresh} />;
+    return <ErrorState type="data" message={predError?.message || 'Error loading forecast'} onRetry={handleRefresh} />;
   }
 
   const currency = profile?.home_currency || 'USD';
@@ -72,8 +75,7 @@ export const Forecast: React.FC = () => {
 
       {/* Forecast Chart */}
       <ForecastChart
-        prediction={prediction}
-        state={state}
+        history={history}
         profile={profile}
         isLoading={isLoading}
       />
@@ -92,7 +94,11 @@ export const Forecast: React.FC = () => {
             )}
             <div className="flex-1">
               <h2 id="gap-detection-title" className="section-title mb-1">
-                {gap.detected ? 'Potential Cash Flow Gap Detected' : 'Cash Flow is Healthy'}
+                {gap.detected 
+                  ? 'Potential Cash Flow Gap Detected' 
+                  : pcf && pcf.projected_cash_flow < 0 
+                    ? 'Negative Cash Flow, but Buffer Sufficient'
+                    : 'Projected Buffer Status: Maintained'}
               </h2>
               {gap.detected ? (
                 <p className="text-sm text-muted mb-4">
@@ -100,7 +106,9 @@ export const Forecast: React.FC = () => {
                 </p>
               ) : (
                 <p className="text-sm text-muted">
-                  Your projected cash flow remains above your required buffer. No action needed.
+                  {pcf && pcf.projected_cash_flow < 0 
+                    ? 'You are projected to spend more than you earn, but your reserves remain above your required buffer. Monitor your expenses.' 
+                    : 'Your projected cash flow remains above your required buffer. No action needed.'}
                 </p>
               )}
 

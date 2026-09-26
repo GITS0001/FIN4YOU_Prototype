@@ -7,19 +7,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#F8FAFC',
-        'primary-dark': '#0F172A',
-        'primary-accent': '#2563EB',
-        'accent-hover': '#1D4ED8',
-        positive: '#16A34A',
-        warning: '#F59E0B',
-        danger: '#DC2626',
-        muted: '#64748B',
-        border: '#E2E8F0',
-        'card-bg': '#FFFFFF',
-        'sidebar-bg': '#0F172A',
-        'sidebar-text': '#94A3B8',
-        'sidebar-active': '#2563EB',
+        background: '#09090b', // Zinc 950
+        'primary-dark': '#fafafa', // Zinc 50 (Used for text now)
+        'primary-accent': '#6366f1', // Indigo 500
+        'accent-hover': '#4f46e5', // Indigo 600
+        positive: '#10b981', // Emerald 500
+        warning: '#f59e0b', // Amber 500
+        danger: '#ef4444', // Red 500
+        muted: '#a1a1aa', // Zinc 400
+        border: '#27272a', // Zinc 800
+        'card-bg': '#18181b', // Zinc 900
+        'sidebar-bg': '#000000', // Pitch black sidebar
+        'sidebar-text': '#a1a1aa',
+        'sidebar-active': '#6366f1',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

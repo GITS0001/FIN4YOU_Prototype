@@ -141,3 +141,30 @@ def test_profile_schema_empty_list():
     )
     assert p.financial_priorities == []
     assert p.expense_categories_to_protect == []
+
+def test_refund_logic():
+    # Test that refunds reduce expenses and do not inflate income
+    transactions = [
+        Transaction(
+            transaction_id="t1", user_id="u1", event_type="income", description="Salary",
+            category="salary", direction="credit", amount=5000.0, currency="ZAR",
+            event_date=date(2024, 1, 1), status="settled", flexibility="variable"
+        ),
+        Transaction(
+            transaction_id="t2", user_id="u1", event_type="expense", description="Groceries",
+            category="groceries", direction="debit", amount=500.0, currency="ZAR",
+            event_date=date(2024, 1, 2), status="settled", flexibility="variable"
+        ),
+        Transaction(
+            transaction_id="t3", user_id="u1", event_type="refund", description="Groceries Refund",
+            category="groceries", direction="credit", amount=100.0, currency="ZAR",
+            event_date=date(2024, 1, 3), status="settled", flexibility="variable"
+        )
+    ]
+    engine = FinancialStateEngine(user_id="u1")
+    state = engine.calculate_state(transactions)
+    
+    assert state.income == 5000.0
+    assert state.expenses == 400.0
+    assert state.discretionary_expenses == 400.0
+    assert state.cash_flow == 4600.0

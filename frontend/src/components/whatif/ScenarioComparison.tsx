@@ -41,7 +41,7 @@ const CustomTooltip = ({
 }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white border border-border rounded-lg px-3 py-2.5 shadow-dropdown">
+      <div className="bg-card-bg border border-border rounded-lg px-3 py-2.5 shadow-dropdown">
         <p className="text-xs font-semibold text-muted mb-1.5">{label}</p>
         {payload.map((entry) => (
           <div key={entry.name} className="flex items-center justify-between gap-4">
@@ -134,7 +134,7 @@ export const ScenarioComparison: React.FC<ScenarioComparisonProps> = ({
           <div className="p-4 flex items-center justify-center bg-background">
             <ArrowRight size={18} className="text-muted" aria-hidden="true" />
           </div>
-          <div className="p-4 bg-blue-50/30">
+          <div className="p-4 bg-primary-accent/10">
             <p className="label-sm mb-1 text-primary-accent">Scenario</p>
             <p className="text-xs text-muted">What changes</p>
           </div>
@@ -152,7 +152,7 @@ export const ScenarioComparison: React.FC<ScenarioComparisonProps> = ({
                 {metric.better === false && <XCircle size={15} className="text-danger" aria-label="Worse" />}
                 {metric.better === null && <div className="w-3 h-0.5 bg-border rounded" aria-label="No change" />}
               </div>
-              <div className="px-4 py-3 bg-blue-50/20">
+              <div className="px-4 py-3 bg-primary-accent/10">
                 <p className="text-sm font-semibold text-primary-dark">{metric.scenario}</p>
               </div>
             </div>
@@ -166,27 +166,27 @@ export const ScenarioComparison: React.FC<ScenarioComparisonProps> = ({
         <div style={{ height: '200px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 0, right: 10, left: 0, bottom: 0 }} barGap={4}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
               <XAxis
                 dataKey="name"
-                tick={{ fontSize: 11, fill: '#64748B' }}
+                tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 11, fill: '#64748B' }}
+                tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => formatCurrencyCompact(v, currency)}
                 width={60}
               />
               <Tooltip content={<CustomTooltip currency={currency} />} />
-              <Bar dataKey="Current" fill="#E2E8F0" radius={[4, 4, 0, 0]} name="Current" />
+              <Bar dataKey="Current" fill="var(--color-border)" radius={[4, 4, 0, 0]} name="Current" />
               <Bar dataKey="Scenario" radius={[4, 4, 0, 0]} name="Scenario">
                 {chartData.map((_, index) => (
                   <Cell
                     key={index}
-                    fill="#2563EB"
+                    fill="var(--color-primary-accent)"
                     opacity={0.85}
                   />
                 ))}
@@ -208,12 +208,12 @@ export const ScenarioComparison: React.FC<ScenarioComparisonProps> = ({
 
       {/* Buffer alert */}
       {scenario.bufferBreached && (
-        <div className="bg-red-50 border border-red-100 rounded-xl p-4">
+        <div className="bg-danger/10 border border-danger/20 rounded-xl p-4">
           <div className="flex items-start gap-2">
             <XCircle size={16} className="text-danger flex-shrink-0 mt-0.5" aria-hidden="true" />
             <div>
               <p className="text-sm font-semibold text-danger">Buffer Breached in Scenario</p>
-              <p className="text-xs text-red-600/80 mt-0.5">
+              <p className="text-xs text-danger/80 mt-0.5">
                 Projected shortfall: {formatCurrency(scenario.shortfall, currency)}
               </p>
             </div>

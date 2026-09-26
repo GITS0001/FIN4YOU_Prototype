@@ -6,6 +6,6 @@ user_04,IDR,52206950.0,30686600,education|emergency_savings,rent|groceries|trans
 user_05,ZAR,46475.1,13100,healthcare|family_support,rent|healthcare|family_support|groceries,shopping,cloud_storage,full_payment|partial_payment|installments,4.0
 user_26,IDR,100845250.0,24768300,retirement_investment|emergency_savings,rent|utilities|groceries,streaming,streaming,full_payment|installments,5.0
 user_27,ZAR,93141.8,20500,education|emergency_savings,rent|groceries|transport,,delivery_membership,full_payment|partial_payment,
-user_28,EUR,1789.4,1100,emergency_savings|housing,rent|groceries|transport,,streaming|cloud_storage,full_payment,
+user_28,INR,1789.4,1100,emergency_savings|housing,rent|groceries|transport,,streaming|cloud_storage,full_payment,
 user_29,ZAR,113540.1,28300,education|family_support,housing|utilities|education,dining,,full_payment|partial_payment|installments,5.0
 user_30,USD,3752.72,900,retirement_investment|emergency_savings,rent|utilities|groceries,dining|streaming,streaming,partial_payment|installments,4.0

@@ -103,6 +103,26 @@ export interface PredictionEngineResult {
   gap_detection?: CashFlowGap;
 }
 
+// ─── Monthly History (new endpoint) ──────────────────────────────────────────
+
+export interface MonthlyDataPoint {
+  month: string;
+  income: number;
+  variable_expenses: number;
+  known_obligations: number;
+  cash_flow: number;
+  is_projected: boolean;
+}
+
+export interface MonthlyHistoryResponse {
+  user_id: string;
+  observed_months: number;
+  period_start?: string;
+  period_end?: string;
+  history: MonthlyDataPoint[];
+  projected?: MonthlyDataPoint;
+}
+
 // ─── Decision / Copilot Types ─────────────────────────────────────────────────
 
 export interface PaymentOption {
@@ -115,6 +135,15 @@ export interface PaymentOption {
   payment_frequency_days?: number;
   financing_fee: number;
   total_payable_amount: number;
+}
+
+export interface AffordabilityResult {
+  status: string;
+  proposed_expense_amount: number;
+  resulting_balance: number;
+  shortfall: number;
+  viable_payment_options: PaymentOption[];
+  trade_off_required: number;
 }
 
 export interface ExpectedImpact {
@@ -149,6 +178,13 @@ export interface ScenarioResult {
   projected_balance: number;
   shortfall: number;
   buffer_breached: boolean;
+}
+
+export interface WhatIfResponse {
+  baseline: ScenarioResult;
+  scenario: ScenarioResult;
+  impact: ExpectedImpact;
+  currency: string;
 }
 
 export type IntentType =
@@ -191,4 +227,27 @@ export type ApiStatus = 'idle' | 'loading' | 'success' | 'error';
 export interface ApiError {
   message: string;
   status?: number;
+}
+
+export interface FinancialOverrides {
+  income_override?: number;
+  balance_override?: number;
+  minimum_buffer_override?: number;
+  expenses_override?: number;
+}
+
+export interface RiskStatus {
+  buffer_status: string;
+  cash_flow_status: string;
+}
+
+export interface GlobalFinancialState {
+  user_id: string;
+  currency: string;
+  baseline: FinancialProfile;
+  current_state: FinancialState;
+  prediction: PredictionEngineResult;
+  risk: RiskStatus;
+  confidence: number;
+  data_sources: string[];
 }

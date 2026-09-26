@@ -36,6 +36,14 @@ class FinancialProfile(BaseModel):
     payment_methods_user_will_consider: List[str]
     max_installment_months: Optional[float] = None
 
+    @field_validator('max_installment_months', mode='before')
+    @classmethod
+    def convert_nan_to_none(cls, v):
+        import math
+        if isinstance(v, float) and math.isnan(v):
+            return None
+        return v
+
     @field_validator(
         'financial_priorities', 
         'expense_categories_to_protect', 
@@ -145,3 +153,23 @@ class PredictionEngineResult(BaseModel):
     obligations: List[FutureObligation] = []
     projected_cash_flow: Optional[ProjectedCashFlow] = None
     gap_detection: Optional[CashFlowGap] = None
+
+class FinancialOverrides(BaseModel):
+    income_override: Optional[float] = None
+    balance_override: Optional[float] = None
+    minimum_buffer_override: Optional[float] = None
+    expenses_override: Optional[float] = None
+    
+class RiskStatus(BaseModel):
+    buffer_status: str
+    cash_flow_status: str
+
+class GlobalFinancialState(BaseModel):
+    user_id: str
+    currency: str
+    baseline: FinancialProfile
+    current_state: FinancialState
+    prediction: PredictionEngineResult
+    risk: RiskStatus
+    confidence: float
+    data_sources: List[str]

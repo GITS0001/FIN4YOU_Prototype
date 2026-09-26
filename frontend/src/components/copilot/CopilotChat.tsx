@@ -6,12 +6,11 @@ import { ChatMessage } from './ChatMessage';
 import { Send, Trash2, ChevronRight } from 'lucide-react';
 
 const SUGGESTED_PROMPTS = [
+  "I want to purchase an iPhone for ₹1,302.40",
+  "How much should I save for an emergency fund?",
+  "Can I afford to buy a car in 6 months?",
+  "What if I invest ₹5,000 monthly?",
   "Give me a summary of my finances",
-  "Can I afford spending 50,000?",
-  "What is my spending breakdown?",
-  "What will my cash flow look like next month?",
-  "What if I spend 2,000 less on dining?",
-  "How can I improve my cash flow?",
 ];
 
 export const CopilotChat: React.FC = () => {
@@ -44,9 +43,9 @@ export const CopilotChat: React.FC = () => {
     }
   };
 
-  const handleSuggestion = (prompt: string) => {
-    setInput(prompt);
-    inputRef.current?.focus();
+  const handleSuggestion = async (prompt: string) => {
+    setInput('');
+    await sendMessage(prompt);
   };
 
   return (
@@ -83,7 +82,7 @@ export const CopilotChat: React.FC = () => {
             <div className="w-14 h-14 bg-sidebar-bg rounded-2xl flex items-center justify-center mb-4">
               <span className="text-white text-xl font-bold">F</span>
             </div>
-            <h2 className="text-lg font-semibold text-primary-dark mb-1">FIN4YOU Copilot</h2>
+            <h2 className="text-lg font-semibold text-primary-dark mb-1">Artha AI</h2>
             <p className="text-sm text-muted max-w-xs mb-8">
               Ask questions about your money, spending, and future plans.
             </p>
@@ -95,8 +94,8 @@ export const CopilotChat: React.FC = () => {
                 {SUGGESTED_PROMPTS.map((prompt) => (
                   <button
                     key={prompt}
-                    className="text-left text-sm px-3.5 py-2.5 rounded-xl border border-border bg-white
-                               hover:border-primary-accent hover:bg-blue-50/30
+                    className="text-left text-sm px-3.5 py-2.5 rounded-xl border border-border bg-card-bg
+                               hover:border-primary-accent hover:bg-primary-accent/5
                                transition-all duration-150 group flex items-center justify-between gap-2"
                     onClick={() => handleSuggestion(prompt)}
                   >

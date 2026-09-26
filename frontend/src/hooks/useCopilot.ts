@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
 import { copilotApi } from '../api/copilot';
-import { DEMO_USER_ID } from '../api/client';
+import { useSelectedUser } from '../context/UserContext';
 import type { ChatMessage, CopilotResponse, ApiError } from '../types';
 
 let messageIdCounter = 0;
 const generateId = () => `msg-${++messageIdCounter}-${Date.now()}`;
 
-export function useCopilot(userId: string = DEMO_USER_ID) {
+export function useCopilot() {
+  const { selectedUserId } = useSelectedUser();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -15,7 +16,6 @@ export function useCopilot(userId: string = DEMO_USER_ID) {
     async (content: string) => {
       if (!content.trim() || isLoading) return;
 
-      // Add user message immediately
       const userMessage: ChatMessage = {
         id: generateId(),
         role: 'user',
@@ -29,7 +29,7 @@ export function useCopilot(userId: string = DEMO_USER_ID) {
 
       try {
         const response: CopilotResponse = await copilotApi.query({
-          user_id: userId,
+          user_id: selectedUserId,
           message: content.trim(),
         });
 
@@ -57,7 +57,7 @@ export function useCopilot(userId: string = DEMO_USER_ID) {
         setIsLoading(false);
       }
     },
-    [userId, isLoading]
+    [selectedUserId, isLoading]
   );
 
   const clearMessages = useCallback(() => {

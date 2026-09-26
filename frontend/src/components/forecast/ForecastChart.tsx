@@ -9,13 +9,12 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import type { PredictionEngineResult, FinancialProfile, FinancialState } from '../../types';
+import type { MonthlyHistoryResponse, FinancialProfile } from '../../types';
 import { formatCurrency, formatCurrencyCompact } from '../../utils/format';
 import { ChartSkeleton } from '../shared/LoadingSkeleton';
 
 interface ForecastChartProps {
-  prediction: PredictionEngineResult | null;
-  state: FinancialState | null;
+  history: MonthlyHistoryResponse | null;
   profile: FinancialProfile | null;
   isLoading: boolean;
 }
@@ -50,34 +49,31 @@ const CustomTooltip = ({
 };
 
 export const ForecastChart: React.FC<ForecastChartProps> = ({
-  prediction,
-  state,
+  history,
   profile,
   isLoading,
 }) => {
   if (isLoading) return <ChartSkeleton height="h-72" />;
-  if (!prediction || !state || !profile) return null;
+  if (!history || !profile || history.history.length === 0) return null;
 
   const currency = profile.home_currency;
-  const pcf = prediction.projected_cash_flow;
 
   // Build chart data combining historical (state) and projected (prediction)
-  const chartData = [
-    {
-      period: 'Historical',
-      income: state.income,
-      expenses: state.expenses,
-      cashFlow: state.cash_flow,
-      type: 'historical',
-    },
-  ];
+  const chartData = history.history.map(pt => ({
+    period: pt.month,
+    income: pt.income,
+    expenses: pt.variable_expenses + pt.known_obligations,
+    cashFlow: pt.cash_flow,
+    type: 'historical',
+  }));
 
-  if (pcf) {
+  if (history.projected) {
+    const pt = history.projected;
     chartData.push({
-      period: 'Projected',
-      income: pcf.projected_income,
-      expenses: pcf.projected_expenses + pcf.known_obligations,
-      cashFlow: pcf.projected_cash_flow,
+      period: pt.month + ' (Proj)',
+      income: pt.income,
+      expenses: pt.variable_expenses + pt.known_obligations,
+      cashFlow: pt.cash_flow,
       type: 'projected',
     });
   }
@@ -167,13 +163,6 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({
         </ResponsiveContainer>
       </div>
 
-      {/* Uncertainty note for projected values */}
-      {pcf && prediction.forecasts.some(f => f.uncertainty > 0) && (
-        <p className="text-2xs text-muted/70 mt-2 text-center">
-          Projected values are based on historical averages.{' '}
-          {prediction.forecasts.map(f => `${f.target}: ±${formatCurrency(f.uncertainty, currency)}`).join(' | ')}
-        </p>
-      )}
     </section>
   );
 };

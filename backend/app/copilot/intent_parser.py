@@ -11,7 +11,7 @@ class IntentParser:
     def parse(self, message: str) -> ParsedIntent:
         msg = message.lower()
         
-        # Extract potential amounts (e.g., 15000, 15,000, 2,000)
+        # Extract potential amounts (e.g., 15000, 15,000, 2,000, 1302.40)
         amount = None
         amounts = re.findall(r'[\d,]+(?:\.\d+)?', msg)
         if amounts:
@@ -20,16 +20,19 @@ class IntentParser:
             except ValueError:
                 pass
 
-        if "afford" in msg and "installment" in msg:
-            return ParsedIntent(intent=IntentType.PAYMENT_OPTION_ANALYSIS, amount=amount)
-        elif "afford" in msg:
-            return ParsedIntent(intent=IntentType.AFFORDABILITY_CHECK, amount=amount)
-        elif "what happens if" in msg or "what if" in msg:
+        affordability_keywords = ["afford", "buy", "purchase", "cost", "costing", "pay upfront", "installments"]
+        what_if_keywords = ["what happens if", "what if"]
+
+        if any(kw in msg for kw in what_if_keywords):
             # simple extraction for "spend X less on Y"
             category = None
             if "eating out" in msg:
                 category = "eating out"
             return ParsedIntent(intent=IntentType.WHAT_IF, change_amount=-amount if amount else None, category=category)
+            
+        elif any(kw in msg for kw in affordability_keywords) and not ("what if" in msg):
+            return ParsedIntent(intent=IntentType.AFFORDABILITY_CHECK, amount=amount)
+            
         elif "where is most of my money going" in msg or "spending" in msg or "spend" in msg:
             return ParsedIntent(intent=IntentType.SPENDING_ANALYSIS)
         elif ("next month" in msg or "cash flow" in msg or "forecast" in msg or "enough money" in msg) and "bitcoin" not in msg:

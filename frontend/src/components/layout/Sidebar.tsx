@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -7,12 +7,15 @@ import {
   TrendingUp,
   GitFork,
   UserCircle,
-  Settings,
   Activity,
   Wifi,
   WifiOff,
   Loader2,
   ChevronRight,
+  CreditCard,
+  FileText,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import { useBackendStatus } from '../../hooks/useBackendStatus';
 
@@ -22,13 +25,17 @@ interface NavItemDef {
   icon: React.ElementType;
 }
 
-const NAV_ITEMS: NavItemDef[] = [
+const NAV_ITEMS_MAIN: NavItemDef[] = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/copilot', label: 'AI Copilot', icon: Bot },
+  { path: '/copilot', label: 'Artha AI', icon: Bot },
   { path: '/insights', label: 'Insights', icon: BarChart2 },
   { path: '/forecast', label: 'Forecast', icon: TrendingUp },
-  { path: '/what-if', label: 'What-If', icon: GitFork },
-  { path: '/profile', label: 'Profile', icon: UserCircle },
+  { path: '/what-if', label: 'What-If Simulator', icon: GitFork },
+  { path: '/affordability', label: 'Affordability', icon: CreditCard },
+];
+
+const NAV_ITEMS_ACCOUNT: NavItemDef[] = [
+  { path: '/statement', label: 'Financial Statement', icon: FileText },
 ];
 
 interface SidebarProps {
@@ -57,7 +64,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
           bg-sidebar-bg text-sidebar-text
           transition-transform duration-250 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0 lg:static lg:z-auto
         `}
         style={{ width: 'var(--sidebar-width)' }}
         aria-label="Main navigation"
@@ -65,19 +71,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
           <div className="w-8 h-8 bg-primary-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <Activity size={16} className="text-white" />
+            <Activity size={18} className="text-white" />
           </div>
           <div>
-            <span className="font-bold text-white text-[15px] tracking-tight">FIN4YOU</span>
-            <p className="text-2xs text-sidebar-text leading-none mt-0.5">Financial AI</p>
+            <span className="font-bold text-white text-lg tracking-tight">FIN4YOU</span>
+            <p className="text-[10px] text-sidebar-text leading-none mt-0.5 uppercase tracking-wider">Intelligence</p>
           </div>
         </div>
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto" role="navigation">
-          <p className="label-sm text-white/30 px-3 mb-2">Main</p>
+          <p className="label-sm text-white/30 px-3 mb-2 tracking-wider">MAIN</p>
           <ul className="space-y-0.5" role="list">
-            {NAV_ITEMS.slice(0, 5).map((item) => (
+            {NAV_ITEMS_MAIN.map((item) => (
               <li key={item.path}>
                 <NavLink
                   to={item.path}
@@ -97,9 +103,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
             ))}
           </ul>
 
-          <p className="label-sm text-white/30 px-3 mt-5 mb-2">Account</p>
+          <div className="h-px bg-white/5 my-4 mx-3"></div>
+
+          <p className="label-sm text-white/30 px-3 mb-2 tracking-wider">ACCOUNT</p>
           <ul className="space-y-0.5" role="list">
-            {NAV_ITEMS.slice(5).map((item) => (
+            {NAV_ITEMS_ACCOUNT.map((item) => (
               <li key={item.path}>
                 <NavLink
                   to={item.path}
@@ -113,20 +121,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
                 </NavLink>
               </li>
             ))}
-            <li>
-              <button
-                className="nav-item w-full text-left"
-                aria-label="Settings"
-              >
-                <Settings size={17} aria-hidden="true" />
-                <span className="flex-1">Settings</span>
-              </button>
-            </li>
           </ul>
+
+          <div className="h-px bg-white/5 my-4 mx-3"></div>
+
+          {/* System Info */}
+          <div className="px-3 space-y-2">
+            <div className="bg-white/5 rounded-lg p-3">
+              <p className="text-2xs text-white/40 uppercase tracking-wider mb-1">Active Profile</p>
+              <p className="text-xs text-white/70">Aditya (Prototype) · 6 months history</p>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <p className="text-2xs text-white/40 uppercase tracking-wider mb-1">Architecture</p>
+              <p className="text-xs text-white/70">Deterministic engines + Artha AI</p>
+            </div>
+          </div>
         </nav>
 
+
+
         {/* Backend Status */}
-        <div className="px-4 py-4 border-t border-white/10">
+        <div className="px-4 py-3 border-t border-white/10">
           <div className="flex items-center gap-2.5">
             {status === 'checking' && (
               <Loader2 size={14} className="text-sidebar-text animate-spin" aria-label="Checking backend status" />
@@ -142,7 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
                 {status === 'checking' ? 'Connecting...' : status === 'online' ? 'Engine Online' : 'Engine Offline'}
               </p>
               <p className="text-2xs text-sidebar-text">
-                {status === 'online' ? 'FastAPI v0.5.0' : 'Check backend server'}
+                {status === 'online' ? 'API Connected' : 'Check backend server'}
               </p>
             </div>
           </div>

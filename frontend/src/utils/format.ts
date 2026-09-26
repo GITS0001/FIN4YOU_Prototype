@@ -2,18 +2,22 @@
  * Format a number as currency with the correct symbol.
  * FIN4YOU supports multi-currency (ZAR, IDR, EUR, USD).
  */
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
-  // ZAR data is treated as INR (₹) for this prototype
-  const normalizedCurrency = currency === 'ZAR' ? 'INR' : currency;
+export function formatCurrency(amount: number | string | undefined | null, currency: string = 'USD'): string {
+  if (amount === undefined || amount === null || Number.isNaN(Number(amount))) {
+    return '—';
+  }
+  
+  const numAmount = Number(amount);
 
   const currencyMap: Record<string, { locale: string; currency: string }> = {
     INR: { locale: 'en-IN', currency: 'INR' },
     IDR: { locale: 'id-ID', currency: 'IDR' },
     EUR: { locale: 'de-DE', currency: 'EUR' },
     USD: { locale: 'en-US', currency: 'USD' },
+    ZAR: { locale: 'en-ZA', currency: 'ZAR' }
   };
 
-  const config = currencyMap[normalizedCurrency] || { locale: 'en-US', currency: normalizedCurrency };
+  const config = currencyMap[currency] || { locale: 'en-US', currency: currency };
 
   try {
     return new Intl.NumberFormat(config.locale, {
@@ -21,9 +25,9 @@ export function formatCurrency(amount: number, currency: string = 'USD'): string
       currency: config.currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(numAmount);
   } catch {
-    return `₹${amount.toLocaleString('en-IN')}`;
+    return `${config.currency} ${numAmount.toLocaleString('en-US')}`;
   }
 }
 

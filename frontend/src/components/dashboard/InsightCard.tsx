@@ -53,6 +53,26 @@ function deriveInsights(
     });
   }
 
+  // Negative savings rate / High expense ratio
+  if (state.savings_rate < 0 || state.expenses > state.income) {
+    insights.push({
+      id: 'negative-savings',
+      icon: AlertTriangle,
+      title: 'Expenses exceed income',
+      description: `Your expenses (${formatCurrency(state.expenses, currency)}) are higher than your income (${formatCurrency(state.income, currency)}), leading to a negative savings rate.`,
+      severity: 'danger',
+      action: { label: 'View Affordability', path: '/affordability' },
+    });
+  } else if (state.savings_rate < 0.05) {
+    insights.push({
+      id: 'low-savings',
+      icon: Info,
+      title: 'Low savings rate',
+      description: `Your savings rate is very low (${(state.savings_rate * 100).toFixed(1)}%). Consider reducing discretionary spending.`,
+      severity: 'warning',
+    });
+  }
+
   // Anomalies
   const detectedAnomalies = state.anomalies.filter((a) => a.is_anomaly);
   if (detectedAnomalies.length > 0) {
@@ -93,19 +113,19 @@ function deriveInsights(
 
 const severityConfig = {
   danger: {
-    bg: 'bg-red-50',
-    border: 'border-red-100',
-    icon: 'text-danger bg-red-100',
+    bg: 'bg-red-500/10',
+    border: 'border-red-500/20',
+    icon: 'text-danger bg-red-500/20',
   },
   warning: {
-    bg: 'bg-amber-50',
-    border: 'border-amber-100',
-    icon: 'text-warning bg-amber-100',
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/20',
+    icon: 'text-warning bg-amber-500/20',
   },
   info: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-100',
-    icon: 'text-primary-accent bg-blue-100',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
+    icon: 'text-primary-accent bg-blue-500/20',
   },
 };
 
