@@ -23,9 +23,9 @@ The repository has undergone a final documentation and structural audit for the 
 - **Database/Auth Claims:** Explicitly documented as utilizing in-memory `.csv` prototypes rather than PostgreSQL or JWT frameworks.
 
 ## 3. GitHub Structure Check
-- **Working Tree:** Clean. All temporary script/scratch files (`.bak`, `.txt`, `.py` testing files) were removed prior to commit.
+- **Working Tree:** Clean. All temporary script/scratch files, root-level macOS artifacts (`.DS_Store`), and generated development artifacts (`analyze_temporal.py`, `audit_results.json`) were successfully removed from the repository root.
 - **Secrets:** No API keys or sensitive `.env` files detected in git history.
-- **Ignore Rules:** `node_modules/`, `__pycache__/`, `.pytest_cache/`, and `dist/` remain correctly untracked.
+- **Ignore Rules:** `.DS_Store`, `node_modules/`, `__pycache__/`, `.pytest_cache/`, and `dist/` remain correctly untracked.
 
 ## 4. Final Testing Results
 - **Backend Tests:** `python3.12 -m pytest -q` executed. All core logic tests passing.
