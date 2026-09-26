@@ -5,7 +5,13 @@ from app.schemas.financial import Transaction, FinancialProfile, CopilotRequest,
 
 class DataLoader:
     def __init__(self, data_dir: str):
-        self.data_dir = Path(data_dir)
+        path = Path(data_dir)
+        if not path.is_absolute() and not path.exists():
+            # Try relative to project root (4 levels up from loader.py)
+            root_dir = Path(__file__).resolve().parent.parent.parent.parent
+            self.data_dir = root_dir / data_dir
+        else:
+            self.data_dir = path
         
     def load_events(self) -> List[Transaction]:
         path = self.data_dir / "financial_events.csv"
