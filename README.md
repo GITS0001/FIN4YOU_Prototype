@@ -28,30 +28,18 @@ FIN4YOU relies on a decoupled architecture. The frontend acts purely as a presen
 ## Known Limitations (Prototype Context)
 - Data is loaded from static CSV files (`data/prototype/`) and stored in memory.
 - Multi-month or long-term retirement modeling is not supported; predictions look 1-month forward.
-- The prototype currently runs in a single-user mode (`user_28` / Aditya) without active database persistence (PostgreSQL) or OAuth integration.
+- `user_28` is the primary demonstration profile; the prototype dataset contains multiple validated user profiles used for testing and cross-user isolation.
 
 ## Project Structure
 ```text
 FIN4YOU_Frontend_Test/
 ├── backend/                  # FastAPI backend
-│   ├── app/
-│   │   ├── api/              # Route controllers
-│   │   ├── copilot/          # Artha AI Intent router & response generator
-│   │   ├── decision/         # Affordability & Simulation engines
-│   │   ├── financial/        # Financial state calculation
-│   │   ├── ingestion/        # CSV Data loaders
-│   │   ├── ml/               # Forecasting engine
-│   │   └── schemas/          # Pydantic typing
-│   ├── data/prototype/       # Static datasets
-│   └── tests/                # Pytest suites
+├── data/                     # Static prototype datasets
+├── docs/                     # Project documentation
 ├── frontend/                 # React frontend
-│   ├── src/
-│   │   ├── api/              # Axios API clients
-│   │   ├── components/       # Shared UI components (Sidebar, Topbar, CopilotChat)
-│   │   ├── context/          # Global state management
-│   │   ├── pages/            # Dashboard, Forecast, Affordability, etc.
-│   │   └── types/            # TypeScript interfaces
-└── docs/                     # Project documentation
+├── ml/                       # Forecasting models
+├── notebooks/                # Jupyter notebooks for data analysis
+└── tests/                    # Pytest suites
 ```
 
 ## How to Run
