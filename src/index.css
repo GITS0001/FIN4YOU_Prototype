@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-blue-primary: #2563EB;
+  --color-blue-dark: #1D4ED8;
+  --color-blue-light: #EFF6FF;
+  --color-blue-mid: #BFDBFE;
+  --color-fin-black: #0B0F19;
+  --font-sans: 'Inter', sans-serif;
+  --radius-card: 12px;
+  --shadow-card: 0 4px 16px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.04);
+  --shadow-blue: 0 8px 32px rgba(37,99,235,.22);
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', sans-serif; color: #0B0F19; background: #fff; overflow-x: hidden; }
+  a { text-decoration: none; color: inherit; }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .shadow-blue { box-shadow: 0 8px 32px rgba(37,99,235,.22); }
+  .shadow-card { box-shadow: 0 4px 16px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.04); }
+  .shadow-lg-blue { box-shadow: 0 12px 40px rgba(37,99,235,.18); }
+}
+
+/* Float animations for hero cards */
+@keyframes float-1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+@keyframes float-2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+@keyframes float-3 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+.animate-float-1 { animation: float-1 4s ease-in-out infinite; }
+.animate-float-2 { animation: float-2 4.5s ease-in-out infinite; }
+.animate-float-3 { animation: float-3 5s ease-in-out infinite; }
+
+/* Pulse dot */
+@keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.7)} }
+.animate-pulse-dot { animation: pulse-dot 2s ease infinite; }
+
+/* Scroll line */
+@keyframes scroll-pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+.animate-scroll { animation: scroll-pulse 2s ease infinite; }
+
+/* Stepper progress */
+.stepper-progress { transition: width 0.45s cubic-bezier(.4,0,.2,1); }
+
+/* FAQ accordion */
+.faq-answer { overflow: hidden; transition: max-height .4s ease, padding .3s; }
