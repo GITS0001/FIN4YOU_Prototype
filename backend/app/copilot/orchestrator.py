@@ -119,26 +119,36 @@ class CopilotOrchestrator:
                 "current_balance": profile.current_available_balance,
                 "minimum_buffer": profile.minimum_balance_to_keep,
                 "projected_cash_flow": pred.projected_cash_flow.projected_cash_flow if pred.projected_cash_flow else 0,
+                "reasons": res.reasons,
                 "currency": currency,
             }
 
+            simulation_text = (
+                f"Resulting balance if paid upfront: {res.resulting_balance:.2f}. "
+                + " | ".join(res.reasons[-2:])  # include last two reasons for brevity
+            )
             trace = DecisionTrace(
-                observed_fact=f"Current Balance: {profile.current_available_balance}, Buffer: {profile.minimum_balance_to_keep}",
-                calculation=f"Purchase amount: {parsed.amount}",
-                prediction=f"Projected Cash Flow: {pred.projected_cash_flow.projected_cash_flow if pred.projected_cash_flow else 0}",
-                simulation=f"Resulting Balance if paid upfront: {res.resulting_balance}",
+                observed_fact=f"Current balance: {profile.current_available_balance:.2f}. Required buffer: {profile.minimum_balance_to_keep:.2f}.",
+                calculation=f"Proposed purchase: {parsed.amount:.2f}. Projected net cash flow: {pred.projected_cash_flow.projected_cash_flow if pred.projected_cash_flow else 0:.2f}.",
+                prediction=f"Projected balance after purchase: {res.resulting_balance:.2f}. Shortfall vs buffer: {res.shortfall:.2f}.",
+                simulation=simulation_text,
                 recommendation=Recommendation(
                     recommendation_type="AFFORDABILITY",
-                    actionable_text="Consider paying in installments" if res.status == "NOT AFFORDABLE UNDER CURRENT PROJECTION" and len(res.viable_payment_options) > 0 else ("Avoid purchase" if res.status == "NOT AFFORDABLE UNDER CURRENT PROJECTION" else "Proceed with purchase"),
+                    actionable_text=(
+                        "Consider paying in installments"
+                        if res.status == "NOT AFFORDABLE UNDER CURRENT PROJECTION" and len(res.viable_payment_options) > 0
+                        else ("Avoid this purchase or save more first" if res.status == "NOT AFFORDABLE UNDER CURRENT PROJECTION"
+                              else "Proceed with purchase")
+                    ),
                     expected_impact=ExpectedImpact(
                         cash_flow_difference=0,
                         balance_difference=-parsed.amount,
                         buffer_status_change="breached" if res.resulting_balance < profile.minimum_balance_to_keep else "maintained"
                     ),
                     confidence_level="HIGH",
-                    confidence_reason="Deterministic calculation based on user data."
+                    confidence_reason="Deterministic calculation based on projected cash flow and user profile."
                 ),
-                supporting_data={"shortfall": res.shortfall}
+                supporting_data={"shortfall": res.shortfall, "trade_off_required": res.trade_off_required}
             )
 
             action_links = [
@@ -202,11 +212,33 @@ class CopilotOrchestrator:
         elif parsed.intent == IntentType.WHAT_IF:
             sim = WhatIfSimulator(profile, pred)
             baseline = sim.baseline_scenario()
-            if parsed.change_amount and parsed.change_amount < 0:
-                scenario = sim.simulate_reduce_discretionary_spending(abs(parsed.change_amount))
-                impact = ImpactEngine.calculate_impact(baseline, scenario)
+
+            change = parsed.change_amount
+
+            if change is None or change == 0:
+                # No valid change specified – return baseline as the scenario
                 structured_res = {
                     "type": "what_if",
+                    "scenario_type": "no_change",
+                    "projected_balance": baseline.projected_balance,
+                    "baseline_cash_flow": baseline.projected_cash_flow,
+                    "scenario_cash_flow": baseline.projected_cash_flow,
+                    "buffer_status_change": "maintained" if not baseline.buffer_breached else "breached",
+                    "buffer_breached": baseline.buffer_breached,
+                    "minimum_buffer": profile.minimum_balance_to_keep,
+                    "change_amount": 0.0,
+                    "currency": currency,
+                    "note": "No change amount was specified; showing baseline projection.",
+                }
+            elif change < 0:
+                # Spending REDUCTION scenario (change_amount negative means less spending)
+                reduction = abs(change)
+                scenario = sim.simulate_reduce_discretionary_spending(reduction)
+                impact = ImpactEngine.calculate_impact(baseline, scenario)
+                summary = sim.compute_what_if_summary(baseline, scenario)
+                structured_res = {
+                    "type": "what_if",
+                    "scenario_type": "spending_reduction",
                     "baseline_balance": baseline.projected_balance,
                     "scenario_balance": scenario.projected_balance,
                     "baseline_cash_flow": baseline.projected_cash_flow,
@@ -217,14 +249,30 @@ class CopilotOrchestrator:
                     "buffer_status_change": impact.buffer_status_change,
                     "buffer_breached": scenario.buffer_breached,
                     "minimum_buffer": profile.minimum_balance_to_keep,
-                    "change_amount": abs(parsed.change_amount),
+                    "change_amount": reduction,
+                    "monthly_summary": summary.model_dump(),
                     "currency": currency,
                 }
             else:
+                # Spending INCREASE scenario (change_amount positive means more spending)
+                scenario = sim.simulate_increase_spending(change)
+                impact = ImpactEngine.calculate_impact(baseline, scenario)
+                summary = sim.compute_what_if_summary(baseline, scenario)
                 structured_res = {
                     "type": "what_if",
-                    "projected_balance": baseline.projected_balance,
-                    "buffer_status_change": "maintained" if not baseline.buffer_breached else "breached",
+                    "scenario_type": "spending_increase",
+                    "baseline_balance": baseline.projected_balance,
+                    "scenario_balance": scenario.projected_balance,
+                    "baseline_cash_flow": baseline.projected_cash_flow,
+                    "scenario_cash_flow": scenario.projected_cash_flow,
+                    "cash_flow_change": impact.cash_flow_difference,
+                    "balance_change": impact.balance_difference,
+                    "projected_balance": scenario.projected_balance,
+                    "buffer_status_change": impact.buffer_status_change,
+                    "buffer_breached": scenario.buffer_breached,
+                    "minimum_buffer": profile.minimum_balance_to_keep,
+                    "change_amount": change,
+                    "monthly_summary": summary.model_dump(),
                     "currency": currency,
                 }
 

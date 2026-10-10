@@ -1,0 +1,157 @@
+{
+  "type1_validations": [
+    {
+      "pdf_file": "00001.pdf",
+      "ground_truth_transactions": 162,
+      "parsed_transactions": 162,
+      "extraction_rate": 1.0,
+      "unique_amounts_in_gt": 159,
+      "unique_amounts_parsed": 159,
+      "amount_matches": 159,
+      "amount_recall": 1.0,
+      "metadata_checks": {
+        "account_number_match": true,
+        "currency_match": true
+      },
+      "gt_opening_balance": 59131.72,
+      "gt_closing_balance": 21661.82,
+      "parsed_opening_balance": 0.0,
+      "parsed_closing_balance": 0.0
+    },
+    {
+      "pdf_file": "00002.pdf",
+      "ground_truth_transactions": 161,
+      "parsed_transactions": 160,
+      "extraction_rate": 0.9938,
+      "unique_amounts_in_gt": 156,
+      "unique_amounts_parsed": 156,
+      "amount_matches": 155,
+      "amount_recall": 0.9936,
+      "metadata_checks": {
+        "account_number_match": true,
+        "currency_match": true
+      },
+      "gt_opening_balance": 779226.5,
+      "gt_closing_balance": 2482196.19,
+      "parsed_opening_balance": 0.0,
+      "parsed_closing_balance": 0.0
+    },
+    {
+      "pdf_file": "00003.pdf",
+      "ground_truth_transactions": 159,
+      "parsed_transactions": 158,
+      "extraction_rate": 0.9937,
+      "unique_amounts_in_gt": 156,
+      "unique_amounts_parsed": 156,
+      "amount_matches": 155,
+      "amount_recall": 0.9936,
+      "metadata_checks": {
+        "account_number_match": true,
+        "currency_match": true
+      },
+      "gt_opening_balance": 201049.75,
+      "gt_closing_balance": 94495.02,
+      "parsed_opening_balance": 0.0,
+      "parsed_closing_balance": 0.0
+    },
+    {
+      "pdf_file": "00004.pdf",
+      "ground_truth_transactions": 155,
+      "parsed_transactions": 154,
+      "extraction_rate": 0.9935,
+      "unique_amounts_in_gt": 152,
+      "unique_amounts_parsed": 152,
+      "amount_matches": 151,
+      "amount_recall": 0.9934,
+      "metadata_checks": {
+        "account_number_match": true,
+        "currency_match": true
+      },
+      "gt_opening_balance": 649036.11,
+      "gt_closing_balance": 91007.33,
+      "parsed_opening_balance": 0.0,
+      "parsed_closing_balance": 0.0
+    },
+    {
+      "pdf_file": "00005.pdf",
+      "ground_truth_transactions": 170,
+      "parsed_transactions": 169,
+      "extraction_rate": 0.9941,
+      "unique_amounts_in_gt": 162,
+      "unique_amounts_parsed": 162,
+      "amount_matches": 161,
+      "amount_recall": 0.9938,
+      "metadata_checks": {
+        "account_number_match": true,
+        "currency_match": true
+      },
+      "gt_opening_balance": 683025.55,
+      "gt_closing_balance": 1212467.9,
+      "parsed_opening_balance": 0.0,
+      "parsed_closing_balance": 0.0
+    }
+  ],
+  "type2_validations": [
+    {
+      "pdf_file": "00001.pdf",
+      "ground_truth_transactions": 161,
+      "parsed_transactions": 161,
+      "extraction_rate": 1.0,
+      "gt_debits": 0,
+      "gt_credits": 0,
+      "parsed_debits": 88,
+      "parsed_credits": 73,
+      "format_detected": "Type 2"
+    },
+    {
+      "pdf_file": "00002.pdf",
+      "ground_truth_transactions": 167,
+      "parsed_transactions": 167,
+      "extraction_rate": 1.0,
+      "gt_debits": 0,
+      "gt_credits": 0,
+      "parsed_debits": 90,
+      "parsed_credits": 77,
+      "format_detected": "Type 2"
+    },
+    {
+      "pdf_file": "00003.pdf",
+      "ground_truth_transactions": 163,
+      "parsed_transactions": 163,
+      "extraction_rate": 1.0,
+      "gt_debits": 0,
+      "gt_credits": 0,
+      "parsed_debits": 85,
+      "parsed_credits": 78,
+      "format_detected": "Type 2"
+    },
+    {
+      "pdf_file": "00004.pdf",
+      "ground_truth_transactions": 156,
+      "parsed_transactions": 156,
+      "extraction_rate": 1.0,
+      "gt_debits": 0,
+      "gt_credits": 0,
+      "parsed_debits": 65,
+      "parsed_credits": 91,
+      "format_detected": "Type 2"
+    },
+    {
+      "pdf_file": "00005.pdf",
+      "ground_truth_transactions": 156,
+      "parsed_transactions": 156,
+      "extraction_rate": 1.0,
+      "gt_debits": 0,
+      "gt_credits": 0,
+      "parsed_debits": 79,
+      "parsed_credits": 77,
+      "format_detected": "Type 2"
+    }
+  ],
+  "summary": {
+    "type1_files_tested": 5,
+    "type1_mean_extraction_rate": 0.995,
+    "type2_files_tested": 5,
+    "type2_mean_extraction_rate": 1.0
+  }
+}

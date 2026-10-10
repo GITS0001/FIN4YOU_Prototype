@@ -1,0 +1,1016 @@
+{
+  "calibration": {
+    "n_test_samples": 221,
+    "test_accuracy": 1.0,
+    "expected_calibration_error": 0.088138,
+    "n_bins": 10,
+    "per_bin_reliability": [
+      {
+        "bin_index": 0,
+        "bin_range": "[0.00, 0.10)",
+        "n_samples": 0,
+        "mean_confidence": null,
+        "accuracy": null,
+        "gap": null,
+        "calibration_direction": "no_data"
+      },
+      {
+        "bin_index": 1,
+        "bin_range": "[0.10, 0.20)",
+        "n_samples": 0,
+        "mean_confidence": null,
+        "accuracy": null,
+        "gap": null,
+        "calibration_direction": "no_data"
+      },
+      {
+        "bin_index": 2,
+        "bin_range": "[0.20, 0.30)",
+        "n_samples": 0,
+        "mean_confidence": null,
+        "accuracy": null,
+        "gap": null,
+        "calibration_direction": "no_data"
+      },
+      {
+        "bin_index": 3,
+        "bin_range": "[0.30, 0.40)",
+        "n_samples": 0,
+        "mean_confidence": null,
+        "accuracy": null,
+        "gap": null,
+        "calibration_direction": "no_data"
+      },
+      {
+        "bin_index": 4,
+        "bin_range": "[0.40, 0.50)",
+        "n_samples": 0,
+        "mean_confidence": null,
+        "accuracy": null,
+        "gap": null,
+        "calibration_direction": "no_data"
+      },
+      {
+        "bin_index": 5,
+        "bin_range": "[0.50, 0.60)",
+        "n_samples": 1,
+        "mean_confidence": 0.5616,
+        "accuracy": 1.0,
+        "gap": 0.4384,
+        "calibration_direction": "underconfident"
+      },
+      {
+        "bin_index": 6,
+        "bin_range": "[0.60, 0.70)",
+        "n_samples": 0,
+        "mean_confidence": null,
+        "accuracy": null,
+        "gap": null,
+        "calibration_direction": "no_data"
+      },
+      {
+        "bin_index": 7,
+        "bin_range": "[0.70, 0.80)",
+        "n_samples": 0,
+        "mean_confidence": null,
+        "accuracy": null,
+        "gap": null,
+        "calibration_direction": "no_data"
+      },
+      {
+        "bin_index": 8,
+        "bin_range": "[0.80, 0.90)",
+        "n_samples": 98,
+        "mean_confidence": 0.8763,
+        "accuracy": 1.0,
+        "gap": 0.1237,
+        "calibration_direction": "underconfident"
+      },
+      {
+        "bin_index": 9,
+        "bin_range": "[0.90, 1.00)",
+        "n_samples": 122,
+        "mean_confidence": 0.9433,
+        "accuracy": 1.0,
+        "gap": 0.0567,
+        "calibration_direction": "underconfident"
+      }
+    ],
+    "confidence_level_breakdown": {
+      "high": {
+        "n_samples": 205,
+        "accuracy": 1.0,
+        "mean_confidence": 0.9186,
+        "gap_accuracy_minus_confidence": 0.0814,
+        "calibration_direction": "underconfident"
+      },
+      "medium": {
+        "n_samples": 15,
+        "accuracy": 1.0,
+        "mean_confidence": 0.843,
+        "gap_accuracy_minus_confidence": 0.157,
+        "calibration_direction": "underconfident"
+      },
+      "low": {
+        "n_samples": 1,
+        "accuracy": 1.0,
+        "mean_confidence": 0.5616,
+        "gap_accuracy_minus_confidence": 0.4384,
+        "calibration_direction": "underconfident"
+      }
+    },
+    "n_underconfident_bins": 3,
+    "n_overconfident_bins": 0,
+    "root_cause": "underconfident",
+    "calibration_verdict": "poorly_calibrated",
+    "trust_statement": "Confidence scores should not be treated as exact probabilities. Consider temperature scaling or isotonic regression.",
+    "temperature_scaling_recommendation": {
+      "action": "temperature_scaling_T_less_than_1",
+      "rationale": "Model predicts with lower confidence than its actual accuracy warrants.",
+      "suggested_T_range": "0.5 - 0.8"
+    },
+    "interpretation": "ECE = 0.0881 (poorly calibrated). On the held-out chronological test set (n=221), the model achieves 100.00% accuracy. The model is underconfident: confidence scores are lower than actual correctness rates. Confidence scores should not be treated as exact probabilities. Consider temperature scaling or isotonic regression."
+  },
+  "coverage_metrics": {
+    "n_evaluations": 19,
+    "target_coverage": 0.95,
+    "empirical_coverage": 1.0,
+    "coverage_gap": 0.05,
+    "mean_interval_width": 3248623.97,
+    "mean_mae": 215191.64,
+    "mean_mape_pct": 4.11,
+    "per_user_coverage": [
+      {
+        "user_id": "user_01",
+        "n_evaluations": 2,
+        "coverage": 1.0,
+        "mean_interval_width": 9421.03,
+        "mae": 588.02,
+        "mape_pct": 2.81,
+        "mean_df": 2.5
+      },
+      {
+        "user_id": "user_02",
+        "n_evaluations": 2,
+        "coverage": 1.0,
+        "mean_interval_width": 13234762.17,
+        "mae": 1261671.84,
+        "mape_pct": 4.99,
+        "mean_df": 2.5
+      },
+      {
+        "user_id": "user_03",
+        "n_evaluations": 2,
+        "coverage": 1.0,
+        "mean_interval_width": 438159.57,
+        "mae": 180558.18,
+        "mape_pct": 6.53,
+        "mean_df": 2.5
+      },
+      {
+        "user_id": "user_04",
+        "n_evaluations": 2,
+        "coverage": 1.0,
+        "mean_interval_width": 11588011.26,
+        "mae": 319568.37,
+        "mape_pct": 1.03,
+        "mean_df": 2.5
+      },
+      {
+        "user_id": "user_05",
+        "n_evaluations": 2,
+        "coverage": 1.0,
+        "mean_interval_width": 2247.87,
+        "mae": 125.73,
+        "mape_pct": 0.98,
+        "mean_df": 2.5
+      },
+      {
+        "user_id": "user_26",
+        "n_evaluations": 1,
+        "coverage": 1.0,
+        "mean_interval_width": 11149130.29,
+        "mae": 559825.8,
+        "mape_pct": 2.79,
+        "mean_df": 2.0
+      },
+      {
+        "user_id": "user_27",
+        "n_evaluations": 2,
+        "coverage": 1.0,
+        "mean_interval_width": 11635.19,
+        "mae": 1376.67,
+        "mape_pct": 5.83,
+        "mean_df": 2.5
+      },
+      {
+        "user_id": "user_28",
+        "n_evaluations": 2,
+        "coverage": 1.0,
+        "mean_interval_width": 220.78,
+        "mae": 28.54,
+        "mape_pct": 2.27,
+        "mean_df": 2.5
+      },
+      {
+        "user_id": "user_29",
+        "n_evaluations": 2,
+        "coverage": 1.0,
+        "mean_interval_width": 2599.05,
+        "mae": 386.5,
+        "mape_pct": 1.3,
+        "mean_df": 2.5
+      },
+      {
+        "user_id": "user_30",
+        "n_evaluations": 2,
+        "coverage": 1.0,
+        "mean_interval_width": 305.62,
+        "mae": 103.8,
+        "mape_pct": 11.88,
+        "mean_df": 2.5
+      }
+    ],
+    "calibration_verdict": "conservative (intervals too wide)",
+    "note": "With only 3-5 training months per user, t-distribution PI coverage depends on outlier-free data. Coverage gaps indicate unmodeled seasonality or spending shocks not captured in 5-month history."
+  },
+  "sample_forecast_user27": {
+    "user_id": "user_27",
+    "forecast_months": 6,
+    "confidence_level": 0.95,
+    "t_distribution_df": 4,
+    "historical_months_used": 5,
+    "historical_expense_mean": 24622.57,
+    "historical_expense_std": 1343.69,
+    "estimated_monthly_income": 32740.76,
+    "minimum_reserve": 20500.0,
+    "monthly_forecasts": [
+      {
+        "month_ahead": 1,
+        "point_forecast_expense": 24622.57,
+        "prediction_interval_lower": 20535.81,
+        "prediction_interval_upper": 28709.32,
+        "interval_width": 8173.51,
+        "distribution_mu": 24622.57,
+        "distribution_sigma": 1343.69,
+        "degrees_of_freedom": 4,
+        "t_critical_value": 2.7764,
+        "expected_net_cash_flow": 8118.19,
+        "cumulative_surplus": 8118.19,
+        "p_breach_reserve_cumulative": 1.0,
+        "p_breach_reserve_single_month": 0.0002
+      },
+      {
+        "month_ahead": 2,
+        "point_forecast_expense": 24622.57,
+        "prediction_interval_lower": 20535.81,
+        "prediction_interval_upper": 28709.32,
+        "interval_width": 8173.51,
+        "distribution_mu": 24622.57,
+        "distribution_sigma": 1343.69,
+        "degrees_of_freedom": 4,
+        "t_critical_value": 2.7764,
+        "expected_net_cash_flow": 8118.19,
+        "cumulative_surplus": 16236.38,
+        "p_breach_reserve_cumulative": 0.9876,
+        "p_breach_reserve_single_month": 0.0002
+      },
+      {
+        "month_ahead": 3,
+        "point_forecast_expense": 24622.57,
+        "prediction_interval_lower": 20535.81,
+        "prediction_interval_upper": 28709.32,
+        "interval_width": 8173.51,
+        "distribution_mu": 24622.57,
+        "distribution_sigma": 1343.69,
+        "degrees_of_freedom": 4,
+        "t_critical_value": 2.7764,
+        "expected_net_cash_flow": 8118.19,
+        "cumulative_surplus": 24354.57,
+        "p_breach_reserve_cumulative": 0.0488,
+        "p_breach_reserve_single_month": 0.0002
+      },
+      {
+        "month_ahead": 4,
+        "point_forecast_expense": 24622.57,
+        "prediction_interval_lower": 20535.81,
+        "prediction_interval_upper": 28709.32,
+        "interval_width": 8173.51,
+        "distribution_mu": 24622.57,
+        "distribution_sigma": 1343.69,
+        "degrees_of_freedom": 4,
+        "t_critical_value": 2.7764,
+        "expected_net_cash_flow": 8118.19,
+        "cumulative_surplus": 32472.76,
+        "p_breach_reserve_cumulative": 0.0,
+        "p_breach_reserve_single_month": 0.0002
+      },
+      {
+        "month_ahead": 5,
+        "point_forecast_expense": 24622.57,
+        "prediction_interval_lower": 20535.81,
+        "prediction_interval_upper": 28709.32,
+        "interval_width": 8173.51,
+        "distribution_mu": 24622.57,
+        "distribution_sigma": 1343.69,
+        "degrees_of_freedom": 4,
+        "t_critical_value": 2.7764,
+        "expected_net_cash_flow": 8118.19,
+        "cumulative_surplus": 40590.95,
+        "p_breach_reserve_cumulative": 0.0,
+        "p_breach_reserve_single_month": 0.0002
+      },
+      {
+        "month_ahead": 6,
+        "point_forecast_expense": 24622.57,
+        "prediction_interval_lower": 20535.81,
+        "prediction_interval_upper": 28709.32,
+        "interval_width": 8173.51,
+        "distribution_mu": 24622.57,
+        "distribution_sigma": 1343.69,
+        "degrees_of_freedom": 4,
+        "t_critical_value": 2.7764,
+        "expected_net_cash_flow": 8118.19,
+        "cumulative_surplus": 48709.14,
+        "p_breach_reserve_cumulative": 0.0,
+        "p_breach_reserve_single_month": 0.0002
+      }
+    ],
+    "probability_any_reserve_breach": 0.0012,
+    "expected_first_breach_month": 1,
+    "uncertainty_changes_plan": "False",
+    "recommendation": "Low risk: Current spending pattern is sustainable for the next 6 months with >95% confidence."
+  },
+  "uncertainty_demonstrations": [
+    {
+      "user_id": "user_01",
+      "current_balance": 58481.1,
+      "base_minimum_reserve": 18000.0,
+      "expense_mu": 20386.41,
+      "expense_sigma": 940.54,
+      "expense_cv_pct": 4.61,
+      "upper_ci_expense": 23247.01,
+      "estimated_monthly_income": 12826.0,
+      "reserve_sensitivity": [
+        {
+          "reserve_factor": 1.0,
+          "test_reserve": 18000.0,
+          "deterministic_end_balance": 13118.62,
+          "probabilistic_worst_case_end_balance": -4044.96,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 1.5,
+          "test_reserve": 27000.0,
+          "deterministic_end_balance": 13118.62,
+          "probabilistic_worst_case_end_balance": -4044.96,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 2.0,
+          "test_reserve": 36000.0,
+          "deterministic_end_balance": 13118.62,
+          "probabilistic_worst_case_end_balance": -4044.96,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 3.0,
+          "test_reserve": 54000.0,
+          "deterministic_end_balance": 13118.62,
+          "probabilistic_worst_case_end_balance": -4044.96,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 5.0,
+          "test_reserve": 90000.0,
+          "deterministic_end_balance": 13118.62,
+          "probabilistic_worst_case_end_balance": -4044.96,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 8.0,
+          "test_reserve": 144000.0,
+          "deterministic_end_balance": 13118.62,
+          "probabilistic_worst_case_end_balance": -4044.96,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        }
+      ],
+      "uncertainty_changes_plan_at_any_threshold": false
+    },
+    {
+      "user_id": "user_02",
+      "current_balance": 60383889.2,
+      "base_minimum_reserve": 29158400.0,
+      "expense_mu": 23386710.83,
+      "expense_sigma": 1620496.99,
+      "expense_cv_pct": 6.93,
+      "upper_ci_expense": 28315360.44,
+      "estimated_monthly_income": 33345000.0,
+      "reserve_sensitivity": [
+        {
+          "reserve_factor": 1.0,
+          "test_reserve": 29158400.0,
+          "deterministic_end_balance": 120133624.2,
+          "probabilistic_worst_case_end_balance": 90561726.56,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 1.5,
+          "test_reserve": 43737600.0,
+          "deterministic_end_balance": 120133624.2,
+          "probabilistic_worst_case_end_balance": 90561726.56,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 2.0,
+          "test_reserve": 58316800.0,
+          "deterministic_end_balance": 120133624.2,
+          "probabilistic_worst_case_end_balance": 90561726.56,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 3.0,
+          "test_reserve": 87475200.0,
+          "deterministic_end_balance": 120133624.2,
+          "probabilistic_worst_case_end_balance": 90561726.56,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 5.0,
+          "test_reserve": 145792000.0,
+          "deterministic_end_balance": 120133624.2,
+          "probabilistic_worst_case_end_balance": 90561726.56,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 8.0,
+          "test_reserve": 233267200.0,
+          "deterministic_end_balance": 120133624.2,
+          "probabilistic_worst_case_end_balance": 90561726.56,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        }
+      ],
+      "uncertainty_changes_plan_at_any_threshold": false
+    },
+    {
+      "user_id": "user_03",
+      "current_balance": 5810300.0,
+      "base_minimum_reserve": 2668700.0,
+      "expense_mu": 2714026.11,
+      "expense_sigma": 120045.12,
+      "expense_cv_pct": 4.42,
+      "upper_ci_expense": 3079136.53,
+      "estimated_monthly_income": 4365000.0,
+      "reserve_sensitivity": [
+        {
+          "reserve_factor": 1.0,
+          "test_reserve": 2668700.0,
+          "deterministic_end_balance": 15716143.35,
+          "probabilistic_worst_case_end_balance": 13525480.85,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 1.5,
+          "test_reserve": 4003050.0,
+          "deterministic_end_balance": 15716143.35,
+          "probabilistic_worst_case_end_balance": 13525480.85,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 2.0,
+          "test_reserve": 5337400.0,
+          "deterministic_end_balance": 15716143.35,
+          "probabilistic_worst_case_end_balance": 13525480.85,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 3.0,
+          "test_reserve": 8006100.0,
+          "deterministic_end_balance": 15716143.35,
+          "probabilistic_worst_case_end_balance": 13525480.85,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 5.0,
+          "test_reserve": 13343500.0,
+          "deterministic_end_balance": 15716143.35,
+          "probabilistic_worst_case_end_balance": 13525480.85,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 8.0,
+          "test_reserve": 21349600.0,
+          "deterministic_end_balance": 15716143.35,
+          "probabilistic_worst_case_end_balance": 13525480.85,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        }
+      ],
+      "uncertainty_changes_plan_at_any_threshold": false
+    },
+    {
+      "user_id": "user_04",
+      "current_balance": 52206950.0,
+      "base_minimum_reserve": 30686600.0,
+      "expense_mu": 30926867.82,
+      "expense_sigma": 1055644.74,
+      "expense_cv_pct": 3.41,
+      "upper_ci_expense": 34137551.35,
+      "estimated_monthly_income": 41689488.09,
+      "reserve_sensitivity": [
+        {
+          "reserve_factor": 1.0,
+          "test_reserve": 30686600.0,
+          "deterministic_end_balance": 116782671.66,
+          "probabilistic_worst_case_end_balance": 97518570.45,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 1.5,
+          "test_reserve": 46029900.0,
+          "deterministic_end_balance": 116782671.66,
+          "probabilistic_worst_case_end_balance": 97518570.45,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 2.0,
+          "test_reserve": 61373200.0,
+          "deterministic_end_balance": 116782671.66,
+          "probabilistic_worst_case_end_balance": 97518570.45,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 3.0,
+          "test_reserve": 92059800.0,
+          "deterministic_end_balance": 116782671.66,
+          "probabilistic_worst_case_end_balance": 97518570.45,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 5.0,
+          "test_reserve": 153433000.0,
+          "deterministic_end_balance": 116782671.66,
+          "probabilistic_worst_case_end_balance": 97518570.45,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 8.0,
+          "test_reserve": 245492800.0,
+          "deterministic_end_balance": 116782671.66,
+          "probabilistic_worst_case_end_balance": 97518570.45,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        }
+      ],
+      "uncertainty_changes_plan_at_any_threshold": false
+    },
+    {
+      "user_id": "user_05",
+      "current_balance": 46475.1,
+      "base_minimum_reserve": 13100.0,
+      "expense_mu": 12723.98,
+      "expense_sigma": 213.27,
+      "expense_cv_pct": 1.68,
+      "upper_ci_expense": 13372.64,
+      "estimated_monthly_income": 14740.0,
+      "reserve_sensitivity": [
+        {
+          "reserve_factor": 1.0,
+          "test_reserve": 13100.0,
+          "deterministic_end_balance": 58571.22,
+          "probabilistic_worst_case_end_balance": 54679.25,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 1.5,
+          "test_reserve": 19650.0,
+          "deterministic_end_balance": 58571.22,
+          "probabilistic_worst_case_end_balance": 54679.25,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 2.0,
+          "test_reserve": 26200.0,
+          "deterministic_end_balance": 58571.22,
+          "probabilistic_worst_case_end_balance": 54679.25,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 3.0,
+          "test_reserve": 39300.0,
+          "deterministic_end_balance": 58571.22,
+          "probabilistic_worst_case_end_balance": 54679.25,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 5.0,
+          "test_reserve": 65500.0,
+          "deterministic_end_balance": 58571.22,
+          "probabilistic_worst_case_end_balance": 54679.25,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 8.0,
+          "test_reserve": 104800.0,
+          "deterministic_end_balance": 58571.22,
+          "probabilistic_worst_case_end_balance": 54679.25,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        }
+      ],
+      "uncertainty_changes_plan_at_any_threshold": false
+    },
+    {
+      "user_id": "user_26",
+      "current_balance": 100845250.0,
+      "base_minimum_reserve": 24768300.0,
+      "expense_mu": 20514859.66,
+      "expense_sigma": 957943.34,
+      "expense_cv_pct": 4.67,
+      "upper_ci_expense": 23923301.71,
+      "estimated_monthly_income": 30443598.35,
+      "reserve_sensitivity": [
+        {
+          "reserve_factor": 1.0,
+          "test_reserve": 24768300.0,
+          "deterministic_end_balance": 160417682.13,
+          "probabilistic_worst_case_end_balance": 139967029.84,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 1.5,
+          "test_reserve": 37152450.0,
+          "deterministic_end_balance": 160417682.13,
+          "probabilistic_worst_case_end_balance": 139967029.84,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 2.0,
+          "test_reserve": 49536600.0,
+          "deterministic_end_balance": 160417682.13,
+          "probabilistic_worst_case_end_balance": 139967029.84,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 3.0,
+          "test_reserve": 74304900.0,
+          "deterministic_end_balance": 160417682.13,
+          "probabilistic_worst_case_end_balance": 139967029.84,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 5.0,
+          "test_reserve": 123841500.0,
+          "deterministic_end_balance": 160417682.13,
+          "probabilistic_worst_case_end_balance": 139967029.84,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 8.0,
+          "test_reserve": 198146400.0,
+          "deterministic_end_balance": 160417682.13,
+          "probabilistic_worst_case_end_balance": 139967029.84,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        }
+      ],
+      "uncertainty_changes_plan_at_any_threshold": false
+    },
+    {
+      "user_id": "user_27",
+      "current_balance": 93141.8,
+      "base_minimum_reserve": 20500.0,
+      "expense_mu": 24622.57,
+      "expense_sigma": 1343.69,
+      "expense_cv_pct": 5.46,
+      "upper_ci_expense": 28709.32,
+      "estimated_monthly_income": 32740.76,
+      "reserve_sensitivity": [
+        {
+          "reserve_factor": 1.0,
+          "test_reserve": 20500.0,
+          "deterministic_end_balance": 141850.94,
+          "probabilistic_worst_case_end_balance": 117330.41,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 1.5,
+          "test_reserve": 30750.0,
+          "deterministic_end_balance": 141850.94,
+          "probabilistic_worst_case_end_balance": 117330.41,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 2.0,
+          "test_reserve": 41000.0,
+          "deterministic_end_balance": 141850.94,
+          "probabilistic_worst_case_end_balance": 117330.41,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 3.0,
+          "test_reserve": 61500.0,
+          "deterministic_end_balance": 141850.94,
+          "probabilistic_worst_case_end_balance": 117330.41,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 5.0,
+          "test_reserve": 102500.0,
+          "deterministic_end_balance": 141850.94,
+          "probabilistic_worst_case_end_balance": 117330.41,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 8.0,
+          "test_reserve": 164000.0,
+          "deterministic_end_balance": 141850.94,
+          "probabilistic_worst_case_end_balance": 117330.41,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        }
+      ],
+      "uncertainty_changes_plan_at_any_threshold": false
+    },
+    {
+      "user_id": "user_28",
+      "current_balance": 1789.4,
+      "base_minimum_reserve": 1100.0,
+      "expense_mu": 1222.08,
+      "expense_sigma": 30.88,
+      "expense_cv_pct": 2.53,
+      "upper_ci_expense": 1315.99,
+      "estimated_monthly_income": 1452.0,
+      "reserve_sensitivity": [
+        {
+          "reserve_factor": 1.0,
+          "test_reserve": 1100.0,
+          "deterministic_end_balance": 3168.94,
+          "probabilistic_worst_case_end_balance": 2605.44,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 1.5,
+          "test_reserve": 1650.0,
+          "deterministic_end_balance": 3168.94,
+          "probabilistic_worst_case_end_balance": 2605.44,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 2.0,
+          "test_reserve": 2200.0,
+          "deterministic_end_balance": 3168.94,
+          "probabilistic_worst_case_end_balance": 2605.44,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 3.0,
+          "test_reserve": 3300.0,
+          "deterministic_end_balance": 3168.94,
+          "probabilistic_worst_case_end_balance": 2605.44,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 5.0,
+          "test_reserve": 5500.0,
+          "deterministic_end_balance": 3168.94,
+          "probabilistic_worst_case_end_balance": 2605.44,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 8.0,
+          "test_reserve": 8800.0,
+          "deterministic_end_balance": 3168.94,
+          "probabilistic_worst_case_end_balance": 2605.44,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        }
+      ],
+      "uncertainty_changes_plan_at_any_threshold": false
+    },
+    {
+      "user_id": "user_29",
+      "current_balance": 113540.1,
+      "base_minimum_reserve": 28300.0,
+      "expense_mu": 29310.4,
+      "expense_sigma": 363.1,
+      "expense_cv_pct": 1.24,
+      "upper_ci_expense": 30414.76,
+      "estimated_monthly_income": 49319.59,
+      "reserve_sensitivity": [
+        {
+          "reserve_factor": 1.0,
+          "test_reserve": 28300.0,
+          "deterministic_end_balance": 233595.23,
+          "probabilistic_worst_case_end_balance": 226969.1,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 1.5,
+          "test_reserve": 42450.0,
+          "deterministic_end_balance": 233595.23,
+          "probabilistic_worst_case_end_balance": 226969.1,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 2.0,
+          "test_reserve": 56600.0,
+          "deterministic_end_balance": 233595.23,
+          "probabilistic_worst_case_end_balance": 226969.1,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 3.0,
+          "test_reserve": 84900.0,
+          "deterministic_end_balance": 233595.23,
+          "probabilistic_worst_case_end_balance": 226969.1,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 5.0,
+          "test_reserve": 141500.0,
+          "deterministic_end_balance": 233595.23,
+          "probabilistic_worst_case_end_balance": 226969.1,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 8.0,
+          "test_reserve": 226400.0,
+          "deterministic_end_balance": 233595.23,
+          "probabilistic_worst_case_end_balance": 226969.1,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        }
+      ],
+      "uncertainty_changes_plan_at_any_threshold": false
+    },
+    {
+      "user_id": "user_30",
+      "current_balance": 3752.72,
+      "base_minimum_reserve": 900.0,
+      "expense_mu": 888.45,
+      "expense_sigma": 66.63,
+      "expense_cv_pct": 7.5,
+      "upper_ci_expense": 1091.1,
+      "estimated_monthly_income": 1117.73,
+      "reserve_sensitivity": [
+        {
+          "reserve_factor": 1.0,
+          "test_reserve": 900.0,
+          "deterministic_end_balance": 5128.42,
+          "probabilistic_worst_case_end_balance": 3912.53,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 1.5,
+          "test_reserve": 1350.0,
+          "deterministic_end_balance": 5128.42,
+          "probabilistic_worst_case_end_balance": 3912.53,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 2.0,
+          "test_reserve": 1800.0,
+          "deterministic_end_balance": 5128.42,
+          "probabilistic_worst_case_end_balance": 3912.53,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 3.0,
+          "test_reserve": 2700.0,
+          "deterministic_end_balance": 5128.42,
+          "probabilistic_worst_case_end_balance": 3912.53,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "safe",
+          "uncertainty_changed_verdict": "False"
+        },
+        {
+          "reserve_factor": 5.0,
+          "test_reserve": 4500.0,
+          "deterministic_end_balance": 5128.42,
+          "probabilistic_worst_case_end_balance": 3912.53,
+          "deterministic_verdict": "safe",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "True"
+        },
+        {
+          "reserve_factor": 8.0,
+          "test_reserve": 7200.0,
+          "deterministic_end_balance": 5128.42,
+          "probabilistic_worst_case_end_balance": 3912.53,
+          "deterministic_verdict": "at_risk",
+          "probabilistic_verdict": "at_risk",
+          "uncertainty_changed_verdict": "False"
+        }
+      ],
+      "uncertainty_changes_plan_at_any_threshold": true
+    }
+  ]
+}
