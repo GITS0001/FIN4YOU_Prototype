@@ -11,21 +11,27 @@ import os
 import re
 import json
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Union
 import pandas as pd
 import pypdf
 from rapidocr_onnxruntime import RapidOCR
 
 from fin4you.models.categorizer import TransactionCategorizer
+from fin4you.cv.receipt_deskewer import ReceiptDeskewer
 
 class StatementParser:
     """
     Unified extraction and OCR engine for financial statements and receipts.
     """
     
-    def __init__(self, categorizer: Optional[TransactionCategorizer] = None):
+    def __init__(
+        self,
+        categorizer: Optional[TransactionCategorizer] = None,
+        deskewer: Optional[ReceiptDeskewer] = None
+    ):
         self.categorizer = categorizer or TransactionCategorizer.load()
         self.ocr_engine = RapidOCR()
+        self.deskewer = deskewer or ReceiptDeskewer()
 
     def parse_digital_statement(self, pdf_path: str) -> Dict[str, Any]:
         """
@@ -57,24 +63,48 @@ class StatementParser:
             "transactions": transactions
         }
 
-    def parse_image_document(self, image_path: str) -> Dict[str, Any]:
+    def parse_image_document(
+        self,
+        image_path: Union[str, Path, Any],
+        enable_deskew: bool = True
+    ) -> Dict[str, Any]:
         """
         Runs deep learning OCR on document receipts, pay slips, and statements.
+        Optionally rectifies perspective and skew using OpenCV before RapidOCR.
         Extracts textual entities, net amounts, dates, and references.
         """
-        result, _ = self.ocr_engine(image_path)
+        deskew_meta = None
+        input_for_ocr = image_path
+
+        if enable_deskew and self.deskewer is not None:
+            try:
+                deskew_res = self.deskewer.deskew(image_path)
+                deskew_meta = deskew_res.to_dict()
+                input_for_ocr = deskew_res.image
+            except Exception as ex:
+                deskew_meta = {
+                    "applied": False,
+                    "method": "none",
+                    "message": f"Deskew bypassed due to exception: {str(ex)}"
+                }
+                input_for_ocr = image_path
+
+        result, _ = self.ocr_engine(input_for_ocr)
         extracted_lines = [r[1] for r in result] if result else []
         
+        source_name = os.path.basename(str(image_path)) if isinstance(image_path, (str, Path)) else "in_memory_image"
+
         # Entity extraction
         extracted_data = {
-            "source_image": os.path.basename(image_path),
+            "source_image": source_name,
             "raw_lines_count": len(extracted_lines),
             "detected_text": extracted_lines,
             "document_type": "unknown",
             "net_amount": None,
             "gross_amount": None,
             "date": None,
-            "reference": None
+            "reference": None,
+            "deskew_metadata": deskew_meta
         }
         
         full_text = " ".join(extracted_lines).lower()

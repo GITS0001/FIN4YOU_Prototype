@@ -30,13 +30,14 @@ class TransactionCategorizer:
     into standardized budget categories with calibrated confidence scores.
     """
     
-    def __init__(self, C: float = 5.0, random_state: int = 42):
+    def __init__(self, C: float = 5.0, random_state: int = 42, temperature: float = 1.0):
         self.C = C
         self.random_state = random_state
+        self.temperature = float(temperature)
         self.classes_ = []
         self.pipeline: Optional[Pipeline] = None
         self.metadata: Dict[str, Any] = {}
-        
+
     def _build_pipeline(self) -> Pipeline:
         preprocessor = ColumnTransformer(
             transformers=[
@@ -83,31 +84,42 @@ class TransactionCategorizer:
             "train_accuracy": float(acc),
             "train_macro_f1": float(f1),
             "train_macro_precision": float(p),
-            "train_macro_recall": float(r)
+            "train_macro_recall": float(r),
+            "temperature": float(self.temperature)
         }
         return self
+
+    def predict_proba(self, df: pd.DataFrame) -> np.ndarray:
+        """
+        Return calibrated probabilities for a dataframe.
+        Applies Temperature Scaling if self.temperature != 1.0.
+        """
+        if self.pipeline is None:
+            raise RuntimeError("Model is not fitted or loaded yet.")
+            
+        data = df.copy()
+        for col, default_val in [('description', ''), ('direction', 'debit'), ('event_type', 'expense')]:
+            if col not in data.columns:
+                data[col] = default_val
+            data[col] = data[col].fillna(default_val)
+
+        if not np.isclose(self.temperature, 1.0):
+            prep = self.pipeline.named_steps['preprocessor']
+            clf = self.pipeline.named_steps['classifier']
+            feats = prep.transform(data[['description', 'direction', 'event_type']])
+            logits = clf.decision_function(feats)
+            from fin4you.models.calibration import TemperatureScaler
+            scaler = TemperatureScaler(temperature=self.temperature)
+            return scaler.predict_proba(logits)
+        else:
+            return self.pipeline.predict_proba(data[['description', 'direction', 'event_type']])
 
     def predict_records(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Predict categories and calibrated confidence scores for a batch dataframe.
         Returns a DataFrame with columns: predicted_category, ml_confidence, ml_status, ml_confidence_level.
         """
-        if self.pipeline is None:
-            raise RuntimeError("Model is not fitted or loaded yet.")
-            
-        data = df.copy()
-        if 'description' not in data.columns:
-            data['description'] = ''
-        if 'direction' not in data.columns:
-            data['direction'] = 'debit'
-        if 'event_type' not in data.columns:
-            data['event_type'] = 'expense'
-            
-        data['description'] = data['description'].fillna('')
-        data['direction'] = data['direction'].fillna('debit')
-        data['event_type'] = data['event_type'].fillna('expense')
-        
-        probabilities = self.pipeline.predict_proba(data[['description', 'direction', 'event_type']])
+        probabilities = self.predict_proba(df)
         pred_idx = np.argmax(probabilities, axis=1)
         confidences = np.max(probabilities, axis=1)
         
@@ -149,16 +161,13 @@ class TransactionCategorizer:
         }])
         res = self.predict_records(df_single).iloc[0]
         
-        # Get top 3 candidate categories with probabilities
-        if self.pipeline is not None:
-            probs = self.pipeline.predict_proba(df_single[['description', 'direction', 'event_type']])[0]
-            top_indices = np.argsort(probs)[::-1][:3]
-            top_candidates = [
-                {"category": self.classes_[i], "confidence": round(float(probs[i]), 4)}
-                for i in top_indices
-            ]
-        else:
-            top_candidates = []
+        # Get top 3 candidate categories with calibrated probabilities
+        probs = self.predict_proba(df_single)[0]
+        top_indices = np.argsort(probs)[::-1][:3]
+        top_candidates = [
+            {"category": self.classes_[i], "confidence": round(float(probs[i]), 4)}
+            for i in top_indices
+        ]
             
         return {
             "predicted_category": res['predicted_category'],
@@ -177,6 +186,7 @@ class TransactionCategorizer:
         
         os.makedirs(os.path.dirname(p_path), exist_ok=True)
         joblib.dump(self.pipeline, p_path)
+        self.metadata['temperature'] = float(self.temperature)
         with open(m_path, 'w', encoding='utf-8') as f:
             json.dump(self.metadata, f, indent=2)
 
@@ -197,4 +207,5 @@ class TransactionCategorizer:
         if os.path.exists(m_path):
             with open(m_path, 'r', encoding='utf-8') as f:
                 instance.metadata = json.load(f)
+                instance.temperature = float(instance.metadata.get('temperature', 1.0))
         return instance

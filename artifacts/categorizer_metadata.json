@@ -25,5 +25,8 @@
   "train_accuracy": 1.0,
   "train_macro_f1": 1.0,
   "train_macro_precision": 1.0,
-  "train_macro_recall": 1.0
+  "train_macro_recall": 1.0,
+  "temperature": 0.6,
+  "calibration_method": "temperature_scaling",
+  "calibrated_ece": 0.0057
 }
