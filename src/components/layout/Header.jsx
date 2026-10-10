@@ -4,9 +4,10 @@ import { Menu, X, TrendingUp } from 'lucide-react';
 
 const navLinks = [
   { label: 'Home', to: '/#top' },
+  { label: 'Story', to: '/#animation' },
+  { label: 'Artha AI', to: '/#artha-ai' },
   { label: 'Features', to: '/#features' },
   { label: 'How It Works', to: '/#how-it-works' },
-  { label: 'Insights', to: '/#insights' },
   { label: 'FAQ', to: '/#faq' },
 ];
 
