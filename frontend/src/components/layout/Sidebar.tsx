@@ -1,42 +1,62 @@
-import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React from 'react';
+import { NavLink, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
+  CreditCard,
+  FileText,
   Bot,
   BarChart2,
   TrendingUp,
   GitFork,
-  UserCircle,
-  Activity,
-  Wifi,
-  WifiOff,
-  Loader2,
-  ChevronRight,
-  CreditCard,
-  FileText,
-  ChevronDown,
-  Check,
+  X,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useBackendStatus } from '../../hooks/useBackendStatus';
 
-interface NavItemDef {
+interface NavItem {
   path: string;
   label: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
+  badge?: string;
 }
 
-const NAV_ITEMS_MAIN: NavItemDef[] = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/copilot', label: 'Artha AI', icon: Bot },
-  { path: '/insights', label: 'Insights', icon: BarChart2 },
-  { path: '/forecast', label: 'Forecast', icon: TrendingUp },
-  { path: '/what-if', label: 'What-If Simulator', icon: GitFork },
-  { path: '/affordability', label: 'Affordability', icon: CreditCard },
+const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
+  {
+    title: 'Overview',
+    items: [
+      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/copilot', label: 'Artha AI', icon: Bot, badge: 'AI' },
+    ],
+  },
+  {
+    title: 'Analyze',
+    items: [
+      { path: '/insights', label: 'Insights', icon: BarChart2 },
+      { path: '/forecast', label: 'Forecast', icon: TrendingUp },
+      { path: '/statement', label: 'Statement', icon: FileText },
+    ],
+  },
+  {
+    title: 'Plan',
+    items: [
+      { path: '/what-if', label: 'What-If', icon: GitFork },
+      { path: '/affordability', label: 'Affordability', icon: CreditCard },
+    ],
+  },
 ];
 
-const NAV_ITEMS_ACCOUNT: NavItemDef[] = [
-  { path: '/statement', label: 'Financial Statement', icon: FileText },
-];
+import fin4youLogo from '../../assets/fin4you_logo.jpg';
+
+/** Brand mark */
+export const BrandMark: React.FC<{ size?: number }> = ({ size = 32 }) => (
+  <div
+    className="rounded-[10px] flex items-center justify-center shadow-sm flex-shrink-0 overflow-hidden"
+    style={{ width: size, height: size }}
+    aria-hidden="true"
+  >
+    <img src={fin4youLogo} alt="FIN4YOU Logo" className="w-full h-full object-cover" />
+  </div>
+);
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -45,14 +65,19 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
   const { status } = useBackendStatus();
-  const location = useLocation();
+
+  const statusMeta = {
+    checking: { dot: 'bg-warning', label: 'Connecting…', sub: 'Reaching data service' },
+    online: { dot: 'bg-positive', label: 'Live data', sub: 'All systems operational' },
+    offline: { dot: 'bg-danger', label: 'Offline', sub: 'Showing cached data' },
+  }[status as 'checking' | 'online' | 'offline'] ?? { dot: 'bg-muted', label: 'Unknown', sub: '' };
 
   return (
     <>
       {/* Overlay for mobile */}
       {isOpen && onClose && (
         <div
-          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden animate-fade-in"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -61,104 +86,87 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
       <aside
         className={`
           fixed top-0 left-0 h-full z-40 flex flex-col
-          bg-sidebar-bg text-sidebar-text
-          transition-transform duration-250 ease-in-out
+          bg-sidebar-bg border-r border-border text-sidebar-text
+          transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-2xl lg:shadow-none
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
         style={{ width: 'var(--sidebar-width)' }}
-        aria-label="Main navigation"
+        aria-label="Sidebar navigation"
       >
         {/* Logo */}
-        <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
-          <div className="w-8 h-8 bg-primary-accent rounded-lg flex items-center justify-center flex-shrink-0">
-            <Activity size={18} className="text-white" />
-          </div>
-          <div>
-            <span className="font-bold text-white text-lg tracking-tight">FIN4YOU</span>
-            <p className="text-[10px] text-sidebar-text leading-none mt-0.5 uppercase tracking-wider">Intelligence</p>
-          </div>
+        <div className="px-5 flex items-center justify-between border-b border-border" style={{ height: 'var(--topbar-height)' }}>
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <BrandMark />
+            <div className="leading-none">
+              <span className="block font-display font-bold text-primary-dark text-[17px] tracking-tight">FIN4YOU</span>
+              <span className="block text-[10px] font-medium text-muted mt-1 tracking-wide">Financial Intelligence</span>
+            </div>
+          </Link>
+          {onClose && (
+            <button className="icon-btn lg:hidden" onClick={onClose} aria-label="Close navigation">
+              <X size={18} />
+            </button>
+          )}
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 overflow-y-auto" role="navigation">
-          <p className="label-sm text-white/30 px-3 mb-2 tracking-wider">MAIN</p>
-          <ul className="space-y-0.5" role="list">
-            {NAV_ITEMS_MAIN.map((item) => (
-              <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) =>
-                    isActive ? 'nav-item-active' : 'nav-item'
-                  }
-                  onClick={onClose}
-                  aria-current={location.pathname === item.path ? 'page' : undefined}
-                >
-                  <item.icon size={17} aria-hidden="true" />
-                  <span className="flex-1">{item.label}</span>
-                  {location.pathname === item.path && (
-                    <ChevronRight size={14} className="opacity-60" aria-hidden="true" />
-                  )}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-
-          <div className="h-px bg-white/5 my-4 mx-3"></div>
-
-          <p className="label-sm text-white/30 px-3 mb-2 tracking-wider">ACCOUNT</p>
-          <ul className="space-y-0.5" role="list">
-            {NAV_ITEMS_ACCOUNT.map((item) => (
-              <li key={item.path}>
-                <NavLink
-                  to={item.path}
-                  className={({ isActive }) =>
-                    isActive ? 'nav-item-active' : 'nav-item'
-                  }
-                  onClick={onClose}
-                >
-                  <item.icon size={17} aria-hidden="true" />
-                  <span className="flex-1">{item.label}</span>
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-
-          <div className="h-px bg-white/5 my-4 mx-3"></div>
-
-          {/* System Info */}
-          <div className="px-3 space-y-2">
-            <div className="bg-white/5 rounded-lg p-3">
-              <p className="text-2xs text-white/40 uppercase tracking-wider mb-1">Active Profile</p>
-              <p className="text-xs text-white/70">Aditya (Prototype) · 6 months history</p>
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-5 overflow-y-auto space-y-6" role="navigation">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title}>
+              <p className="text-overline px-3 mb-2 text-subtle">{group.title}</p>
+              <ul className="space-y-0.5" role="list">
+                {group.items.map((item) => (
+                  <li key={item.path}>
+                    <NavLink
+                      to={item.path}
+                      className={({ isActive }) =>
+                        `group relative w-full flex items-center gap-3 px-3 h-10 rounded-[10px] text-sm font-medium transition-all duration-150 ${
+                          isActive
+                            ? 'bg-primary-accent/10 text-primary-accent'
+                            : 'text-muted hover:bg-surface-2 hover:text-primary-dark'
+                        }`
+                      }
+                      onClick={() => {
+                        if (window.innerWidth < 1024 && onClose) onClose();
+                      }}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <span
+                            className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full bg-primary-accent transition-all duration-200 ${
+                              isActive ? 'h-5 opacity-100' : 'h-0 opacity-0'
+                            }`}
+                            aria-hidden="true"
+                          />
+                          <item.icon size={18} strokeWidth={isActive ? 2.25 : 1.9} className="flex-shrink-0" />
+                          <span className="flex-1">{item.label}</span>
+                          {item.badge && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-brand-gradient text-white leading-none">
+                              {item.badge}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="bg-white/5 rounded-lg p-3">
-              <p className="text-2xs text-white/40 uppercase tracking-wider mb-1">Architecture</p>
-              <p className="text-xs text-white/70">Deterministic engines + Artha AI</p>
-            </div>
-          </div>
+          ))}
         </nav>
 
-
-
         {/* Backend Status */}
-        <div className="px-4 py-3 border-t border-white/10">
-          <div className="flex items-center gap-2.5">
-            {status === 'checking' && (
-              <Loader2 size={14} className="text-sidebar-text animate-spin" aria-label="Checking backend status" />
-            )}
-            {status === 'online' && (
-              <Wifi size={14} className="text-positive" aria-label="Backend online" />
-            )}
-            {status === 'offline' && (
-              <WifiOff size={14} className="text-danger" aria-label="Backend offline" />
-            )}
-            <div>
-              <p className="text-xs text-white font-medium">
-                {status === 'checking' ? 'Connecting...' : status === 'online' ? 'Engine Online' : 'Engine Offline'}
-              </p>
-              <p className="text-2xs text-sidebar-text">
-                {status === 'online' ? 'API Connected' : 'Check backend server'}
-              </p>
+        <div className="p-3 border-t border-border">
+          <div className="panel px-3 py-2.5 flex items-center gap-3" role="status">
+            <span className="relative flex h-2.5 w-2.5">
+              {status !== 'offline' && (
+                <span className={`absolute inline-flex h-full w-full rounded-full ${statusMeta.dot} opacity-60 animate-ping`} />
+              )}
+              <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${statusMeta.dot}`} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-primary-dark leading-tight">{statusMeta.label}</p>
+              <p className="text-[11px] text-muted leading-tight mt-0.5 truncate">{statusMeta.sub}</p>
             </div>
           </div>
         </div>

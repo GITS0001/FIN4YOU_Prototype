@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import date, datetime
 import pandas as pd
 
@@ -16,6 +16,9 @@ class Transaction(BaseModel):
     settlement_date: Optional[date] = None
     status: str
     flexibility: str
+    ml_confidence: Optional[float] = None
+    ml_status: Optional[str] = None
+    ml_confidence_level: Optional[str] = None
 
     @field_validator('amount')
     @classmethod
@@ -87,12 +90,17 @@ class CategoryPrediction(BaseModel):
     transaction_id: str
     category: str
     confidence: float
+    status: str = "classified"
+    confidence_level: str = "high"
 
 class AnomalySignal(BaseModel):
     transaction_id: str
     is_anomaly: bool
     anomaly_score: float
     reason: str
+    severity: str = "low"
+    detection_method: str = "z_score"
+    confidence: float = 0.95
 
 class CategorySpending(BaseModel):
     category: str
@@ -119,11 +127,13 @@ class ForecastEvaluation(BaseModel):
     rmse: Optional[float] = None
 
 class ForecastResult(BaseModel):
-    target: str
-    period: str
-    predicted_value: float
-    model: str
+    metric: str
+    prediction: float
+    confidence: float
     uncertainty: float
+    horizon: str
+    model: str
+    evidence: List[str]
     evaluation: Optional[ForecastEvaluation] = None
 
 class FutureObligation(BaseModel):
@@ -153,6 +163,35 @@ class PredictionEngineResult(BaseModel):
     obligations: List[FutureObligation] = []
     projected_cash_flow: Optional[ProjectedCashFlow] = None
     gap_detection: Optional[CashFlowGap] = None
+    projected_cash_flows: List[ProjectedCashFlow] = []
+    gap_detections: List[CashFlowGap] = []
+class MonthlyValueChange(BaseModel):
+    current: float
+    previous: float
+    change: float
+
+class CategoryChange(BaseModel):
+    category: str
+    current: float
+    previous: float
+    change: float
+
+class RecurringObligationItem(BaseModel):
+    description: str
+    amount: float
+
+class MonthlyStatementResponse(BaseModel):
+    month: str
+    income: MonthlyValueChange
+    expenses: MonthlyValueChange
+    savings: MonthlyValueChange
+    cash_flow: MonthlyValueChange
+    category_changes: List[CategoryChange]
+    recurring_obligations: List[RecurringObligationItem]
+    anomalies: List[Dict[str, Any]]
+    forecast: Dict[str, Any]
+    observations: List[str]
+    recommendations: List[str]
 
 class FinancialOverrides(BaseModel):
     income_override: Optional[float] = None
@@ -173,3 +212,21 @@ class GlobalFinancialState(BaseModel):
     risk: RiskStatus
     confidence: float
     data_sources: List[str]
+
+# Re-export planner and probabilistic forecasting schemas
+from app.schemas.planner import (
+    DistributionSummary,
+    ProbabilisticForecastPeriod,
+    ForecastEvaluationMetrics,
+    ProbabilisticForecastRequest,
+    ProbabilisticForecastResponse,
+    ActionType,
+    PeriodAction,
+    FinancialGoal,
+    GoalFeasibilityStatus,
+    PeriodPlanProjection,
+    CandidateActionPlan,
+    EvaluatedPlanResult,
+    PlanEvaluationRequest,
+    PlanEvaluationResponse,
+)

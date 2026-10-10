@@ -8,6 +8,8 @@ import { ErrorState, EmptyState } from '../components/shared/ErrorState';
 import { LoadingSkeleton } from '../components/shared/LoadingSkeleton';
 import { formatCurrency, formatCategory, formatDate } from '../utils/format';
 import { AlertTriangle, CheckCircle, Calendar, TrendingDown } from 'lucide-react';
+import { LineChart as LineChartIcon } from 'lucide-react';
+import { PageHeader } from '../components/shared/PageHeader';
 
 export const Forecast: React.FC = () => {
   const { data: profile, status: profileStatus, refetch: refetchProfile } = useFinancialProfile();
@@ -34,12 +36,13 @@ export const Forecast: React.FC = () => {
   const gap = prediction?.gap_detection;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-primary-dark">Financial Forecast</h1>
-        <p className="text-muted text-sm mt-0.5">Projected income, expenses, and cash flow for next month.</p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        icon={LineChartIcon}
+        eyebrow="Analyze"
+        title="Financial Forecast"
+        subtitle="Projected income, expenses, and cash flow for next month — with gaps flagged early."
+      />
 
       {/* Availability check */}
       {!isLoading && prediction && !prediction.available && (
@@ -51,7 +54,7 @@ export const Forecast: React.FC = () => {
 
       {/* Forecast KPIs */}
       {(isLoading || (prediction?.available && pcf)) && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: 'Projected Income', value: pcf?.projected_income, color: 'text-positive' },
             { label: 'Variable Expenses', value: pcf?.projected_expenses, color: 'text-warning' },
@@ -113,7 +116,7 @@ export const Forecast: React.FC = () => {
               )}
 
               {gap.detected && (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs text-muted">Projected Balance</p>
                     <p className="text-base font-semibold text-danger">

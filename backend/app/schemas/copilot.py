@@ -21,8 +21,12 @@ class ParsedIntent(BaseModel):
     change_amount: Optional[float] = None
 
 class CopilotRequest(BaseModel):
-    user_id: str
+    user_id: Optional[str] = None
     message: str
+
+class ActionLink(BaseModel):
+    label: str
+    url: str
 
 class CopilotResponse(BaseModel):
     intent: IntentType
@@ -32,3 +36,4 @@ class CopilotResponse(BaseModel):
     confidence: str # e.g. "HIGH", "UNKNOWN"
     status: str # "SUCCESS", "UNSUPPORTED", "INSUFFICIENT_DATA", "ERROR"
     data_sources: List[str] = []
+    action_links: List[ActionLink] = []

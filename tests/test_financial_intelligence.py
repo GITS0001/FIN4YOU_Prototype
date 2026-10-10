@@ -57,6 +57,7 @@ def sample_transactions():
 
 def test_categorizer(sample_transactions):
     categorizer = TransactionCategorizer()
+    categorizer.model = None # Mock out the ML model for deterministic tests
     preds = categorizer.predict_batch(sample_transactions)
     
     assert len(preds) == len(sample_transactions)

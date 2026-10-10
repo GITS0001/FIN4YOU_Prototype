@@ -1,30 +1,76 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+from app.auth import get_current_user
+from app.models import User
 
 client = TestClient(app)
+
+def override_get_current_user():
+    user = User()
+    user.id = 28 # Use int ID for DB
+    return user
+
+@pytest.fixture(autouse=True)
+def setup_overrides():
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    yield
+    app.dependency_overrides.clear()
+
+
+# Mock the orchestrator dependencies
+import app.copilot.orchestrator as orch
+from app.schemas.financial import FinancialProfile
+
+def mock_get_user_profile(db, user_id):
+    if user_id == 999:
+        return None
+    return FinancialProfile(
+        user_id=f"user_{user_id}",
+        home_currency="INR",
+        current_available_balance=1500.0,
+        minimum_balance_to_keep=1000.0,
+        financial_priorities=[],
+        expense_categories_to_protect=[],
+        expense_categories_user_is_willing_to_reduce=[],
+        expense_categories_user_is_willing_to_stop=[],
+        payment_methods_user_will_consider=[]
+    )
+
+from datetime import date
+from app.schemas.financial import Transaction
+
+def mock_get_user_transactions(db, user_id):
+    return [
+        Transaction(transaction_id="t1", user_id="u1", event_type="income", description="Salary", category="salary", direction="credit", amount=1500.0, currency="INR", event_date=date(2024, 1, 1), status="settled", flexibility="variable"),
+        Transaction(transaction_id="t2", user_id="u1", event_type="income", description="Salary", category="salary", direction="credit", amount=1500.0, currency="INR", event_date=date(2024, 2, 1), status="settled", flexibility="variable"),
+        Transaction(transaction_id="t3", user_id="u1", event_type="income", description="Salary", category="salary", direction="credit", amount=1500.0, currency="INR", event_date=date(2024, 3, 1), status="settled", flexibility="variable"),
+        Transaction(transaction_id="t4", user_id="u1", event_type="expense", description="Rent", category="rent", direction="debit", amount=1500.0, currency="INR", event_date=date(2024, 1, 2), status="settled", flexibility="fixed"),
+        Transaction(transaction_id="t5", user_id="u1", event_type="expense", description="Rent", category="rent", direction="debit", amount=1500.0, currency="INR", event_date=date(2024, 2, 2), status="settled", flexibility="fixed"),
+        Transaction(transaction_id="t6", user_id="u1", event_type="expense", description="Rent", category="rent", direction="debit", amount=1500.0, currency="INR", event_date=date(2024, 3, 2), status="settled", flexibility="fixed"),
+    ]
+
+orch.get_user_profile = mock_get_user_profile
+orch.get_user_transactions = mock_get_user_transactions
 
 def test_api_root():
     response = client.get("/")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 
-def test_copilot_missing_user():
-    response = client.post("/api/copilot/query", json={"user_id": "", "message": "hello"})
-    assert response.status_code == 400
-
 def test_copilot_missing_message():
-    response = client.post("/api/copilot/query", json={"user_id": "user_28", "message": ""})
+    response = client.post("/api/copilot/query", json={"message": ""})
     assert response.status_code == 400
 
 def test_copilot_invalid_user_id_404():
-    response = client.post("/api/copilot/query", json={"user_id": "user_invalid_999", "message": "hello"})
+    app.dependency_overrides[get_current_user] = lambda: type("User", (), {"id": 999})()
+    response = client.post("/api/copilot/query", json={"message": "hello"})
     assert response.status_code == 404
+
 
 def test_copilot_affordability_user_28():
     # User 28 integration demo path
     response = client.post("/api/copilot/query", json={
-        "user_id": "user_28",
         "message": "Can I afford to spend 1302.4 in installments?"
     })
     
@@ -44,7 +90,6 @@ def test_copilot_affordability_user_28():
 
 def test_copilot_what_if():
     response = client.post("/api/copilot/query", json={
-        "user_id": "user_28",
         "message": "What happens if I spend 200 less on eating out?"
     })
     
@@ -55,7 +100,6 @@ def test_copilot_what_if():
 
 def test_copilot_unknown_question():
     response = client.post("/api/copilot/query", json={
-        "user_id": "user_28",
         "message": "Will Bitcoin go up next month?"
     })
     assert response.status_code == 200

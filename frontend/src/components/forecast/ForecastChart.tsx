@@ -67,14 +67,15 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({
     type: 'historical',
   }));
 
-  if (history.projected) {
-    const pt = history.projected;
-    chartData.push({
-      period: pt.month + ' (Proj)',
-      income: pt.income,
-      expenses: pt.variable_expenses + pt.known_obligations,
-      cashFlow: pt.cash_flow,
-      type: 'projected',
+  if (history.projected && history.projected.length > 0) {
+    history.projected.forEach(pt => {
+      chartData.push({
+        period: pt.month + ' (Proj)',
+        income: pt.income,
+        expenses: pt.variable_expenses + pt.known_obligations,
+        cashFlow: pt.cash_flow,
+        type: 'projected',
+      });
     });
   }
 

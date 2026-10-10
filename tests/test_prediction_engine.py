@@ -51,17 +51,17 @@ def test_prediction_engine_sufficient_data(sufficient_history_transactions, samp
     
     # 2 forecasts: total_income, variable_expenses
     assert len(result.forecasts) == 2
-    income_forecast = next(f for f in result.forecasts if f.target == "total_income")
-    exp_forecast = next(f for f in result.forecasts if f.target == "variable_expenses")
+    income_forecast = next(f for f in result.forecasts if f.metric == "total_income")
+    exp_forecast = next(f for f in result.forecasts if f.metric == "variable_expenses")
     
     # Income MAE check (Train = 5000, 5000; Test = 5000 => MAE = 0)
     assert income_forecast.evaluation.mae == 0.0
-    assert income_forecast.predicted_value == 5000.0
+    assert income_forecast.prediction == 5000.0
     assert income_forecast.uncertainty == 0.0
     
     # Expense MAE check (Train = 1000, 1200 => Avg 1100; Test = 1100 => MAE = 0)
     assert exp_forecast.evaluation.mae == 0.0
-    assert exp_forecast.predicted_value == 1100.0 # (1000 + 1200 + 1100) / 3
+    assert exp_forecast.prediction == 1100.0 # (1000 + 1200 + 1100) / 3
 
     # Obligations (only from latest month, so 1 Netflix sub of 100)
     assert len(result.obligations) == 1
@@ -108,7 +108,7 @@ def test_prediction_engine_single_month_zero_division_edge_case(sample_profile):
     result = engine.run_prediction(transactions, sample_profile)
     
     assert result.available is True
-    assert result.forecasts[0].predicted_value == 5000.0
+    assert result.forecasts[0].prediction == 5000.0
     assert result.forecasts[0].evaluation.mae == 5000.0
 
 def test_prediction_engine_refund_logic(sample_profile):
@@ -121,8 +121,8 @@ def test_prediction_engine_refund_logic(sample_profile):
     result = engine.run_prediction(transactions, sample_profile)
     
     assert result.available is True
-    exp_forecast = next(f for f in result.forecasts if f.target == "variable_expenses")
-    assert exp_forecast.predicted_value == 800.0 # 1000 - 200
+    exp_forecast = next(f for f in result.forecasts if f.metric == "variable_expenses")
+    assert exp_forecast.prediction == 800.0 # 1000 - 200
 
 def test_prediction_engine_zero_financial_totals(sample_profile):
     # Test where income and expenses cancel out or are zero

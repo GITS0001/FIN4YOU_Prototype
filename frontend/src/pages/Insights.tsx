@@ -6,6 +6,8 @@ import { ErrorState } from '../components/shared/ErrorState';
 import { LoadingSkeleton } from '../components/shared/LoadingSkeleton';
 import { formatCurrency, formatCategory, formatPercent, getCategoryColor } from '../utils/format';
 import { Activity, AlertTriangle } from 'lucide-react';
+import { PieChart as PieChartIcon } from 'lucide-react';
+import { PageHeader } from '../components/shared/PageHeader';
 
 export const Insights: React.FC = () => {
   const { data: profile, status: profileStatus, refetch: refetchProfile } = useFinancialProfile();
@@ -28,15 +30,16 @@ export const Insights: React.FC = () => {
   const topCategories = state?.category_spending.filter((c) => c.total_amount > 0).slice(0, 10) || [];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-primary-dark">Spending Insights</h1>
-        <p className="text-muted text-sm mt-0.5">Understand where your money is going.</p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        icon={PieChartIcon}
+        eyebrow="Analyze"
+        title="Spending Insights"
+        subtitle="Understand where your money is going, what is essential, and what stands out."
+      />
 
       {/* Spending Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           {
             label: 'Total Expenses',
@@ -163,7 +166,7 @@ export const Insights: React.FC = () => {
             {anomalies.map((anomaly) => (
               <div
                 key={anomaly.transaction_id}
-                className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100"
+                className="flex items-center justify-between p-3 bg-warning/10 rounded-lg border border-warning/20"
               >
                 <div className="flex items-center gap-2">
                   <Activity size={13} className="text-warning" aria-hidden="true" />
