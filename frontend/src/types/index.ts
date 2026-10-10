@@ -13,10 +13,14 @@ export interface Transaction {
   settlement_date?: string;
   status: string;
   flexibility: string;
+  ml_confidence?: number;
+  ml_status?: string;
+  ml_confidence_level?: string;
 }
 
 export interface FinancialProfile {
   user_id: string;
+  email?: string;
   home_currency: string;
   current_available_balance: number;
   minimum_balance_to_keep: number;
@@ -24,8 +28,14 @@ export interface FinancialProfile {
   expense_categories_to_protect: string[];
   expense_categories_user_is_willing_to_reduce: string[];
   expense_categories_user_is_willing_to_stop: string[];
-  payment_methods_user_will_consider: string[];
+  payment_methods_user_will_consider?: string[];
   max_installment_months?: number;
+  full_name?: string;
+  age?: string;
+  marital_status?: string;
+  dependents?: string;
+  occupation?: string;
+  city_tier?: string;
 }
 
 export interface CategorySpending {
@@ -101,6 +111,8 @@ export interface PredictionEngineResult {
   obligations: FutureObligation[];
   projected_cash_flow?: ProjectedCashFlow;
   gap_detection?: CashFlowGap;
+  projected_cash_flows?: ProjectedCashFlow[];
+  gap_detections?: CashFlowGap[];
 }
 
 // ─── Monthly History (new endpoint) ──────────────────────────────────────────
@@ -120,7 +132,7 @@ export interface MonthlyHistoryResponse {
   period_start?: string;
   period_end?: string;
   history: MonthlyDataPoint[];
-  projected?: MonthlyDataPoint;
+  projected: MonthlyDataPoint[];
 }
 
 // ─── Decision / Copilot Types ─────────────────────────────────────────────────
@@ -198,7 +210,7 @@ export type IntentType =
   | 'UNKNOWN';
 
 export interface CopilotRequest {
-  user_id: string;
+  user_id?: string;
   message: string;
 }
 
@@ -210,6 +222,7 @@ export interface CopilotResponse {
   confidence: string;
   status: string;
   data_sources: string[];
+  action_links?: { label: string; url: string }[];
 }
 
 // ─── UI-specific types ────────────────────────────────────────────────────────

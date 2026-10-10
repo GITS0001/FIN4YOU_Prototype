@@ -78,10 +78,17 @@ class ResponseGenerator:
                     f"You would need to reduce discretionary spending by {trade_str} to stay above your minimum buffer.{opt_text}"
                 )
             else:
+                trace_text = (
+                    f"\n\n**Decision Trace:**\n"
+                    f"• **Observed:** Current Balance is {result.get('current_balance', 0)}, Minimum Buffer is {result.get('minimum_buffer', 0)}\n"
+                    f"• **Prediction:** Projected net cash flow next month is {result.get('projected_cash_flow', 0)}\n"
+                    f"• **Simulation:** Paying {amount_str} upfront leads to a projected balance of {bal_str}\n"
+                    f"• **Impact:** Buffer breached (Shortfall: {result.get('shortfall', 0)})\n"
+                )
                 return (
                     f"No, {amount_str} is not affordable as a single upfront payment under your current projection.\n\n"
                     f"This purchase would bring your projected balance to {bal_str}, "
-                    f"which breaches your required minimum buffer.{opt_text}"
+                    f"which breaches your required minimum buffer.{opt_text}{trace_text}"
                 )
 
         elif parsed.intent == IntentType.PAYMENT_OPTION_ANALYSIS:
@@ -146,7 +153,15 @@ class ResponseGenerator:
         elif parsed.intent == IntentType.RECOMMENDATION:
             rec_text = result.get("recommendation_text")
             if rec_text:
-                return f"Recommendation: {rec_text}"
+                trace_text = (
+                    f"\n\n**Decision Trace:**\n"
+                    f"• **Observed:** {result.get('observed_fact')}\n"
+                    f"• **Calculation:** {result.get('calculation')}\n"
+                    f"• **Prediction:** {result.get('prediction')}\n"
+                    f"• **Simulation:** {result.get('simulation')}\n"
+                    f"• **Confidence:** {result.get('confidence_level')} ({result.get('confidence_reason')})"
+                )
+                return f"**Recommendation:** {rec_text}{trace_text}"
             return "Your projected cash flow and buffer are within acceptable ranges. No critical action is required at this time."
 
         elif parsed.intent == IntentType.CASH_FLOW_FORECAST:

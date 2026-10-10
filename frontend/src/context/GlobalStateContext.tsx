@@ -22,27 +22,26 @@ export const GlobalStateProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [error, setError] = useState<ApiError | null>(null);
 
   const fetchGlobalState = useCallback(async () => {
-    if (!selectedUserId) return;
     setStatus('loading');
     setError(null);
     try {
-      const state = await usersApi.getGlobalState(selectedUserId, overrides);
+      const state = await usersApi.getGlobalState(overrides);
       setGlobalState(state);
       setStatus('success');
     } catch (err) {
       setError(err as ApiError);
       setStatus('error');
     }
-  }, [selectedUserId, overrides]);
+  }, [overrides]);
 
   useEffect(() => {
     fetchGlobalState();
   }, [fetchGlobalState]);
 
-  // When selected user changes, clear overrides
+  // When overrides change (e.g. user toggles options), no need to clear anything
   useEffect(() => {
-    setOverrides({});
-  }, [selectedUserId]);
+    // Left empty since we don't switch users anymore
+  }, []);
 
   const value = {
     globalState,

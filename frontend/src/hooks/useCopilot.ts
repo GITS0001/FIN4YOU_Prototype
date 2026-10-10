@@ -1,13 +1,11 @@
 import { useState, useCallback } from 'react';
 import { copilotApi } from '../api/copilot';
-import { useSelectedUser } from '../context/UserContext';
 import type { ChatMessage, CopilotResponse, ApiError } from '../types';
 
 let messageIdCounter = 0;
 const generateId = () => `msg-${++messageIdCounter}-${Date.now()}`;
 
 export function useCopilot() {
-  const { selectedUserId } = useSelectedUser();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -29,7 +27,6 @@ export function useCopilot() {
 
       try {
         const response: CopilotResponse = await copilotApi.query({
-          user_id: selectedUserId,
           message: content.trim(),
         });
 
@@ -57,7 +54,7 @@ export function useCopilot() {
         setIsLoading(false);
       }
     },
-    [selectedUserId, isLoading]
+    [isLoading]
   );
 
   const clearMessages = useCallback(() => {

@@ -1,6 +1,6 @@
 # FIN4YOU — Financial Health Copilot
 
-A deterministic financial modeling and decision-support prototype powered by a conversational interface (Artha AI). 
+A deterministic financial modeling and decision-support application powered by an AI conversational interface (Artha AI) and backed by Supabase PostgreSQL persistence.
 
 ## Problem Statement
 Personal finance tools often look backwards at past spending without helping users make confident, forward-looking decisions. Users struggle to answer complex questions like "Can I afford this?" or "What happens if I reduce my dining budget?"
@@ -8,77 +8,151 @@ Personal finance tools often look backwards at past spending without helping use
 ## Solution
 FIN4YOU bridges the gap between historical tracking and future planning. It ingests transaction data, deterministically models next month's cash flow, and allows users to simulate the impact of their financial decisions before making them—all through an intuitive conversational Copilot layer (Artha AI).
 
+---
+
 ## Key Features
 - **Observed Financial State:** Tracks and categorizes historical income, expenses, and savings.
-- **Deterministic Forecasting:** Projects next month's cash flow by analyzing past variable spending and identifying recurring fixed obligations.
+- **Probabilistic Cash-Flow Forecasting (Addition 2):** Projects multi-period income, essential/discretionary expenses, and cumulative balances across >= 6 months with prediction intervals and reserve shortfall risk estimation $P(\text{Balance} < \text{Reserve})$.
+- **Constrained Financial Action Planning (Addition 1):** Compares candidate action sequences across >= 6 monthly periods, enforces declared cash reserve constraints, detects infeasible goals with explicit relaxation proposals, and selects risk-aware recommendations.
 - **Affordability Engine:** Evaluates if a proposed purchase is viable outright or via installment plans without violating the user's minimum safety buffer.
 - **What-If Simulator:** Models the impact of modified spending habits on future cash flow.
 - **Artha AI (Copilot):** A conversational interface that routes natural-language questions to the correct mathematical engine and explains the structured result along with a transparent "Decision Trace".
+- **Supabase Cloud Persistence:** Fully migrated from local SQLite to Supabase PostgreSQL with strict Row Level Security (RLS) data isolation and batch deduplication.
 
-## Product Flow & Architecture Overview
-**User → React Frontend → FastAPI → Artha AI (Intent Router) → Deterministic Engines → Structured Explanation → User**
-
-FIN4YOU relies on a decoupled architecture. The frontend acts purely as a presentation layer. The backend acts as the source of truth, performing all mathematical logic and simulations over the ingested prototype dataset.
+---
 
 ## Tech Stack
-- **Frontend:** React, TypeScript, Vite, Tailwind CSS, Lucide Icons.
-- **Backend:** Python 3.12, FastAPI, Pydantic, Uvicorn, Pytest.
-- **AI/ML Components:** The prototype uses algorithmic rolling-average forecasting, deterministic categorical matching, and rule-based anomaly detection. The conversational layer parses user intents and maps them to these deterministic endpoints.
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS, Lucide Icons, Axios.
+- **Backend:** Python 3.12, FastAPI, Pydantic v2, Uvicorn, Pytest.
+- **Persistence & Cloud:** Supabase PostgreSQL, `supabase-py`, PostgREST.
+- **AI/ML Components:** Algorithmic rolling-average forecasting, deterministic categorical matching, and rule-based anomaly detection.
 
-## Known Limitations (Prototype Context)
-- Data is loaded from static CSV files (`data/prototype/`) and stored in memory.
-- Multi-month or long-term retirement modeling is not supported; predictions look 1-month forward.
-- `user_28` is the primary demonstration profile; the prototype dataset contains multiple validated user profiles used for testing and cross-user isolation.
+---
 
-## Project Structure
-```text
-FIN4YOU_Frontend_Test/
-├── backend/                  # FastAPI backend
-├── data/                     # Static prototype datasets
-├── docs/                     # Project documentation
-├── frontend/                 # React frontend
-├── ml/                       # Forecasting models
-├── notebooks/                # Jupyter notebooks for data analysis
-└── tests/                    # Pytest suites
-```
+## Supabase Integration & Architecture
+
+### 1. Persistent Tables
+The persistent application layer uses 5 tables in Supabase (with exact mixed-case quoting in PostgreSQL):
+1. **`"Profiles"`**: User financial profile, currency, minimum safety buffer, and category preference strings.
+2. **`"Transactions"`**: Granular financial transactions, amounts, dates, classifications, and deduplication IDs.
+3. **`"Financial_Summaries"`**: Historical period-level financial aggregates (income, expenses, savings rate, cash flow, emi burden).
+4. **`"Forecasts"`**: Forward-looking projection snapshots, projected cash flow, and model evaluation metrics.
+5. **`"Monthly_Reports"`**: Deterministic month-over-month comparisons, anomaly summaries, and category trends.
+
+### 2. Authentication & Data Isolation
+- **Zero Trust Identity:** The backend never trusts client-supplied `user_id` parameters. The authenticated user ID is strictly extracted from verified JWT claims (`get_current_user` dependency).
+- **Row Level Security (RLS):** All tables enforce PostgreSQL RLS policies where `auth.uid()::text = user_id`.
+- **Deduplication:** CSV statement uploads use deterministic fingerprinting and batch deduplication against existing `transaction_id`s in Supabase, preventing duplicate insertions on re-uploads.
+
+---
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+| Variable | Description | Exposed to Frontend? |
+|---|---|---|
+| `SUPABASE_URL` | Your Supabase project URL (e.g. `https://xyz.supabase.co`) | Yes (Vite: `VITE_SUPABASE_URL`) |
+| `SUPABASE_PUBLISHABLE_KEY` | Public client/anon key with RLS | Yes (Vite: `VITE_SUPABASE_ANON_KEY`) |
+| `SUPABASE_SECRET_KEY` | Privileged service-role key for backend admin operations | **NO (Server-side ONLY)** |
+| `DATABASE_URL` | Direct PostgreSQL connection string | **NO (Server-side ONLY)** |
+| `SECRET_KEY` | JWT signing secret for native auth | **NO (Server-side ONLY)** |
+| `ENVIRONMENT` | `production` (requires Supabase) or `development`/`test` | No |
+
+> [!CAUTION]
+> **Never expose `SUPABASE_SECRET_KEY` in frontend environment files or client bundles!**
+
+---
+
+## Database Setup & SQL Migrations
+
+1. Open your **Supabase Dashboard** -> **SQL Editor**.
+2. Run the safe schema migration script:
+   - [docs/supabase_schema_migration.sql](docs/supabase_schema_migration.sql)
+3. Apply Row Level Security (RLS) policies:
+   - [docs/supabase_rls_policies.sql](docs/supabase_rls_policies.sql)
+
+---
 
 ## How to Run
 
-### Backend
-1. Open a terminal and navigate to the `backend` directory.
-2. Ensure you have Python 3.12 installed.
-3. Install dependencies: `pip install -r requirements.txt`
-4. Start the server: `uvicorn app.main:app --reload --port 8000`
-5. The API will be available at `http://localhost:8000`.
+### Running Locally (Development)
 
-### Frontend
-1. Open a terminal and navigate to the `frontend` directory.
-2. Install dependencies: `npm install`
-3. Start the development server: `npm run dev`
-4. The application will be available at `http://localhost:5173`.
+#### 1. Backend
+```bash
+# Activate virtual environment
+source venv/bin/activate
 
-### Testing
-- Backend unit and integration tests: `python3.12 -m pytest -q`
-- Frontend type checking: `npx tsc --noEmit`
-- Frontend production build check: `npm run build`
+# Install dependencies (including supabase-py)
+pip install -r requirements.txt
 
-## Example User Journey
-1. Navigate to the **Dashboard** to view high-level KPIs and warnings (e.g., "Cash Flow Pressure").
-2. Open **Artha AI** via the sidebar or top navigation.
-3. Ask: *"Can I afford a new iPhone for ₹80,000?"*
-4. View the structured response detailing if it breaks your minimum balance buffer, alongside safe 3, 6, or 12-month installment recommendations.
-5. Click **Decision Trace** to inspect the exact math used by the backend engine.
+# Start backend server
+uvicorn app.main:app --reload --port 8000
+```
+Backend API will be running at `http://localhost:8000`. Health check is available at `http://localhost:8000/health`.
+
+#### 2. Frontend
+```bash
+cd frontend
+npm install --legacy-peer-deps
+npm run dev
+```
+Frontend will be available at `http://localhost:5173`.
+
+---
+
+## Running Automated Tests
+Run full backend test suite (53 tests covering configuration, authentication, Supabase persistence, deduplication, financial intelligence, probabilistic forecasting, and constrained action planning):
+```bash
+pytest tests/
+```
+
+To run individual specialized suites:
+```bash
+# Probabilistic forecasting & prediction intervals (>= 6 months)
+pytest tests/test_probabilistic_forecasting.py -v
+
+# Constrained action planner across 5 required scenarios
+pytest tests/test_action_planner.py -v
+
+# Supabase repository & RLS isolation tests
+pytest tests/test_supabase_integration.py -v
+```
+
+### Testing Live Supabase Integration Safely
+When live Supabase credentials are configured in your `.env`, run the safe verification script:
+```bash
+python backend/verify_supabase_live.py
+```
+This tests live connectivity against the `"Profiles"` table over HTTPS without exposing secrets or mutating user data.
+
+---
+
+## Troubleshooting Guide
+
+### 1. `SupabaseConfigError: CRITICAL CONFIGURATION ERROR`
+- **Cause:** `ENVIRONMENT=production` is set, but `SUPABASE_URL` or `SUPABASE_SECRET_KEY`/`SUPABASE_PUBLISHABLE_KEY` is missing.
+- **Resolution:** Check your `.env` file and verify all Supabase credentials are populated.
+
+### 2. `401 Unauthorized` / `Could not validate credentials`
+- **Cause:** Expired, missing, or invalid Bearer token in the `Authorization` header.
+- **Resolution:** Re-authenticate via `/api/auth/login` or ensure valid Supabase Auth session token is passed.
+
+### 3. PostgreSQL relation `"Profiles"` does not exist
+- **Cause:** Schema migration was not executed in the Supabase SQL editor.
+- **Resolution:** Execute `docs/supabase_schema_migration.sql` in the Supabase Dashboard SQL Editor.
+
+---
 
 ## Documentation Table
 
 | Document | Description |
 |---|---|
+| [Supabase Migration Plan](docs/supabase_migration_plan.md) | Architectural audit and schema mapping manifesto |
+| [Supabase SQL Schema](docs/supabase_schema_migration.sql) | Safe non-destructive table definitions |
+| [Supabase RLS Policies](docs/supabase_rls_policies.sql) | Row Level Security policies for user isolation |
+| [Authentication Security](docs/authentication_security.md) | Zero-trust authentication specifications |
 | [PRD](docs/01_PRD.md) | Product requirements |
 | [SRS](docs/02_SRS.md) | Software requirements |
-| [Architecture](docs/03_SYSTEM_ARCHITECTURE.md) | Technical architecture |
+| [System Architecture](docs/03_SYSTEM_ARCHITECTURE.md) | Technical architecture |
 | [UI/UX](docs/04_UI_UX.md) | Interface and user flows |
-| [Development Plan](docs/05_DEVELOPMENT_PLAN.md) | Development roadmap |
-| [Final Audit](docs/GITHUB_DOCUMENTATION_AUDIT.md) | Final system validation and checklist |
-
----
-*Built for the HackMatrix Evaluation.*

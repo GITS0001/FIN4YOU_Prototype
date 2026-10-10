@@ -75,7 +75,7 @@ export const CopilotStructuredResponse: React.FC<CopilotStructuredResponseProps>
           </Section>
 
           {response.confidence && (
-            <Section icon={Eye} title="Confidence" colorClass="bg-gray-100 text-gray-500">
+            <Section icon={Eye} title="Confidence" colorClass="bg-muted/10 text-muted">
               {response.confidence}
             </Section>
           )}

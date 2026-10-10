@@ -1,9 +1,10 @@
 from typing import Optional, List, Dict
-from app.schemas.copilot import CopilotRequest, CopilotResponse, ParsedIntent, IntentType
+from app.schemas.copilot import CopilotRequest, CopilotResponse, ParsedIntent, IntentType, ActionLink
 from app.copilot.intent_parser import IntentParser
 from app.copilot.response_generator import ResponseGenerator
-from app.ingestion.loader import DataLoader
+from app.services.db_service import get_user_profile, get_user_transactions
 from app.financial.state import FinancialStateEngine
+from sqlalchemy.orm import Session
 from app.ml.forecasting import PredictionEngine
 from app.decision.engine import DecisionEngine
 from app.decision.affordability import AffordabilityEngine
@@ -18,18 +19,21 @@ class CopilotOrchestrator:
     def __init__(self, data_dir: str = "data/prototype"):
         self.parser = IntentParser()
         self.generator = ResponseGenerator()
-        self.loader = DataLoader(data_dir)
-        self.profiles = self.loader.load_profiles()
-        self.events = self.loader.load_events()
-        
+        self.data_dir = data_dir
+
         try:
-            self.payment_opts_df = pd.read_csv(self.loader.data_dir / "request_payment_options.csv")
+            self.payment_opts_df = pd.read_csv(f"{self.data_dir}/request_payment_options.csv")
         except FileNotFoundError:
             self.payment_opts_df = pd.DataFrame()
 
-    def process_query(self, request: CopilotRequest) -> CopilotResponse:
+    def process_query(self, request: CopilotRequest, db: Session) -> CopilotResponse:
         # Find user
-        profile = next((p for p in self.profiles if p.user_id == request.user_id), None)
+        try:
+            uid = int(request.user_id)
+        except ValueError:
+            raise ValueError("Invalid user id")
+
+        profile = get_user_profile(db, uid)
         if not profile:
             raise ValueError(f"User {request.user_id} not found")
 
@@ -37,7 +41,7 @@ class CopilotOrchestrator:
 
         # Parse Intent
         parsed = self.parser.parse(request.message)
-        
+
         if parsed.intent == IntentType.UNKNOWN:
             resp_text = self.generator.generate(parsed, {}, currency)
             return CopilotResponse(
@@ -48,7 +52,7 @@ class CopilotOrchestrator:
             )
 
         # Retrieve Financial Context
-        user_events = [e for e in self.events if e.user_id == profile.user_id]
+        user_events = get_user_transactions(db, uid)
         state = FinancialStateEngine(profile.user_id).calculate_state(user_events)
         pred = PredictionEngine().run_prediction(user_events, profile)
 
@@ -65,6 +69,7 @@ class CopilotOrchestrator:
         structured_res = {}
         trace = None
         status = "SUCCESS"
+        action_links = []
 
         if parsed.intent == IntentType.AFFORDABILITY_CHECK:
             if not parsed.amount or parsed.amount <= 0:
@@ -76,7 +81,7 @@ class CopilotOrchestrator:
                 )
             aff_eng = AffordabilityEngine(profile, pred)
             try:
-                requests_df = pd.read_csv(self.loader.data_dir / "requests.csv")
+                requests_df = pd.read_csv(f"{self.data_dir}/requests.csv")
                 req_id = None
                 for _, r in requests_df.iterrows():
                     if r["user_id"] == profile.user_id and abs(r["requested_amount"] - parsed.amount) < 1.0:
@@ -116,7 +121,7 @@ class CopilotOrchestrator:
                 "projected_cash_flow": pred.projected_cash_flow.projected_cash_flow if pred.projected_cash_flow else 0,
                 "currency": currency,
             }
-            
+
             trace = DecisionTrace(
                 observed_fact=f"Current Balance: {profile.current_available_balance}, Buffer: {profile.minimum_balance_to_keep}",
                 calculation=f"Purchase amount: {parsed.amount}",
@@ -136,6 +141,11 @@ class CopilotOrchestrator:
                 supporting_data={"shortfall": res.shortfall}
             )
 
+            action_links = [
+                ActionLink(label="Affordability Tool", url="/affordability"),
+                ActionLink(label="What-If Simulator", url="/what-if")
+            ]
+
         elif parsed.intent == IntentType.PAYMENT_OPTION_ANALYSIS:
             if not parsed.amount or parsed.amount <= 0:
                 return CopilotResponse(
@@ -144,9 +154,9 @@ class CopilotOrchestrator:
                     confidence="UNKNOWN",
                     status="ERROR"
                 )
-            
+
             try:
-                requests_df = pd.read_csv(self.loader.data_dir / "requests.csv")
+                requests_df = pd.read_csv(f"{self.data_dir}/requests.csv")
                 req_id = None
                 for _, r in requests_df.iterrows():
                     if r["user_id"] == profile.user_id and abs(r["requested_amount"] - parsed.amount) < 1.0:
@@ -185,6 +195,10 @@ class CopilotOrchestrator:
                 "currency": currency,
             }
 
+            action_links = [
+                ActionLink(label="Affordability Tool", url="/affordability")
+            ]
+
         elif parsed.intent == IntentType.WHAT_IF:
             sim = WhatIfSimulator(profile, pred)
             baseline = sim.baseline_scenario()
@@ -214,6 +228,10 @@ class CopilotOrchestrator:
                     "currency": currency,
                 }
 
+            action_links = [
+                ActionLink(label="Open Simulator", url="/what-if")
+            ]
+
         elif parsed.intent == IntentType.RECOMMENDATION:
             dec_eng = DecisionEngine(profile, state, pred)
             trace = dec_eng.generate_recommendation_for_gap()
@@ -239,6 +257,10 @@ class CopilotOrchestrator:
                     "currency": currency,
                 }
 
+            action_links = [
+                ActionLink(label="View Forecast", url="/forecast")
+            ]
+
         elif parsed.intent == IntentType.CASH_FLOW_FORECAST:
             if pred.projected_cash_flow:
                 sim = WhatIfSimulator(profile, pred)
@@ -258,6 +280,10 @@ class CopilotOrchestrator:
             else:
                 structured_res = {"type": "cash_flow_forecast", "currency": currency}
 
+            action_links = [
+                ActionLink(label="View Full Forecast", url="/forecast")
+            ]
+
         elif parsed.intent == IntentType.FINANCIAL_SUMMARY:
             top_categories = sorted(state.category_spending, key=lambda x: x.total_amount, reverse=True)[:3]
             structured_res = {
@@ -276,6 +302,11 @@ class CopilotOrchestrator:
                 "currency": currency,
             }
 
+            action_links = [
+                ActionLink(label="View Dashboard", url="/dashboard"),
+                ActionLink(label="View Insights", url="/insights")
+            ]
+
         elif parsed.intent == IntentType.SPENDING_ANALYSIS:
             top_categories = sorted(state.category_spending, key=lambda x: x.total_amount, reverse=True)[:5]
             structured_res = {
@@ -288,6 +319,10 @@ class CopilotOrchestrator:
                 "currency": currency,
             }
 
+            action_links = [
+                ActionLink(label="Detailed Insights", url="/insights")
+            ]
+
         resp_text = self.generator.generate(parsed, structured_res, currency)
 
         return CopilotResponse(
@@ -297,5 +332,6 @@ class CopilotOrchestrator:
             structured_result=structured_res,
             confidence="HIGH" if pred.available else "MEDIUM",
             status=status,
-            data_sources=["financial_profiles", "financial_events", "PredictionEngine", "DecisionEngine"]
+            data_sources=["financial_profiles", "financial_events", "PredictionEngine", "DecisionEngine"],
+            action_links=action_links
         )

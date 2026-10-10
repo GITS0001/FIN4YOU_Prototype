@@ -9,13 +9,33 @@ import { WhatIf } from './pages/WhatIf';
 import { Profile } from './pages/Profile';
 import { Affordability } from './pages/Affordability';
 import { FinancialStatement } from './pages/FinancialStatement';
+import { Landing } from './pages/Landing';
+import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { OtpVerify } from './pages/OtpVerify';
+import { useAuth } from './context/AuthContext';
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
 
 const App: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<AppShell />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/verify-otp" element={<OtpVerify />} />
+        <Route element={
+          <ProtectedRoute>
+            <AppShell />
+          </ProtectedRoute>
+        }>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="copilot" element={<Copilot />} />
           <Route path="insights" element={<Insights />} />
@@ -25,7 +45,7 @@ const App: React.FC = () => {
           <Route path="profile" element={<Profile />} />
           <Route path="statement" element={<FinancialStatement />} />
           {/* 404 fallback */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

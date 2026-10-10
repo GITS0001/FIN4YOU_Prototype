@@ -8,6 +8,7 @@ import { ErrorState, EmptyState } from '../components/shared/ErrorState';
 import { formatCurrency } from '../utils/format';
 import { GitFork, Loader2, RotateCcw, TrendingUp } from 'lucide-react';
 import type { WhatIfResponse } from '../types';
+import { PageHeader } from '../components/shared/PageHeader';
 
 type ScenarioType = 'reduce_expense' | 'add_purchase';
 
@@ -39,8 +40,8 @@ export const WhatIf: React.FC = () => {
 
   if (!isLoading && prediction && !prediction.available) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold text-primary-dark">What-If Simulator</h1>
+      <div className="space-y-8">
+        <PageHeader icon={GitFork} eyebrow="Plan" title="What-If Simulator" />
         <EmptyState
           title="Forecast Not Available"
           message={prediction.reason || 'Insufficient historical data to run simulations.'}
@@ -66,7 +67,7 @@ export const WhatIf: React.FC = () => {
     setResult(null);
 
     try {
-      const res = await usersApi.runWhatIf(selectedUserId, scenarioType, numAmount);
+      const res = await usersApi.runWhatIf(scenarioType, numAmount);
       setResult(res);
     } catch (err: unknown) {
       const e = err as { message?: string };
@@ -93,45 +94,58 @@ export const WhatIf: React.FC = () => {
   ].filter((v, i, a) => v > 0 && a.indexOf(v) === i);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-primary-dark">What-If Simulator</h1>
-        <p className="text-muted text-sm mt-0.5">
-          Run deterministic backend simulations to see how financial changes affect your projected balance.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        icon={GitFork}
+        eyebrow="Plan"
+        title="What-If Simulator"
+        subtitle="Run deterministic simulations to see how financial changes affect your projected balance."
+      />
 
       {/* Grid container for Baseline and Scenario Builder */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {!isLoading && pcf && (
-        <section className="card p-5 bg-slate-50 border border-slate-200" aria-labelledby="baseline-title">
+        {/* Baseline - always renders a card slot */}
+        <section className="card p-6" aria-labelledby="baseline-title">
           <h2 id="baseline-title" className="section-title mb-4">Current Baseline (Next Month)</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white p-4 rounded-xl border border-slate-100">
-              <p className="text-xs text-muted mb-1">Projected Income</p>
-              <p className="text-lg font-bold text-positive">{formatCurrency(pcf.projected_income, currency)}</p>
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="bg-background shadow-sm p-4 rounded-xl border border-border">
+                  <div className="skeleton h-3 w-24 mb-2" />
+                  <div className="skeleton h-7 w-32" />
+                </div>
+              ))}
             </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-100">
-              <p className="text-xs text-muted mb-1">Variable Expenses</p>
-              <p className="text-lg font-bold text-warning">{formatCurrency(pcf.projected_expenses, currency)}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-100">
-              <p className="text-xs text-muted mb-1">Known Obligations</p>
-              <p className="text-lg font-bold text-danger">{formatCurrency(pcf.known_obligations, currency)}</p>
-            </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-100">
-              <p className="text-xs text-muted mb-1">Net Cash Flow</p>
-              <p className={`text-lg font-bold ${pcf.projected_cash_flow >= 0 ? 'text-positive' : 'text-danger'}`}>
-                {formatCurrency(pcf.projected_cash_flow, currency)}
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 pt-3 border-t border-slate-200 flex items-center gap-2">
-            <p className="text-xs text-muted">Simulation applies changes to this baseline via the backend calculation engine.</p>
-          </div>
+          ) : pcf ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-background shadow-sm p-4 rounded-xl border border-border">
+                  <p className="text-xs text-muted mb-1">Projected Income</p>
+                  <p className="text-lg font-bold text-positive">{formatCurrency(pcf.projected_income, currency)}</p>
+                </div>
+                <div className="bg-background shadow-sm p-4 rounded-xl border border-border">
+                  <p className="text-xs text-muted mb-1">Variable Expenses</p>
+                  <p className="text-lg font-bold text-warning">{formatCurrency(pcf.projected_expenses, currency)}</p>
+                </div>
+                <div className="bg-background shadow-sm p-4 rounded-xl border border-border">
+                  <p className="text-xs text-muted mb-1">Known Obligations</p>
+                  <p className="text-lg font-bold text-danger">{formatCurrency(pcf.known_obligations, currency)}</p>
+                </div>
+                <div className="bg-background shadow-sm p-4 rounded-xl border border-border">
+                  <p className="text-xs text-muted mb-1">Net Cash Flow</p>
+                  <p className={`text-lg font-bold ${pcf.projected_cash_flow >= 0 ? 'text-positive' : 'text-danger'}`}>
+                    {formatCurrency(pcf.projected_cash_flow, currency)}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
+                <p className="text-xs text-muted">Simulation applies changes to this baseline via the backend calculation engine.</p>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted">No forecast data available to show baseline.</p>
+          )}
         </section>
-      )}
 
       {/* Scenario builder */}
       <section className="card p-6" aria-labelledby="scenario-builder-title">
@@ -152,7 +166,7 @@ export const WhatIf: React.FC = () => {
                 key={opt.type}
                 className={`text-left p-4 rounded-xl border-2 transition-all duration-150 ${
                   scenarioType === opt.type
-                    ? 'border-primary-accent bg-blue-50/30'
+                    ? 'border-primary-accent bg-primary-accent/10'
                     : 'border-border hover:border-muted'
                 }`}
                 onClick={() => { setScenarioType(opt.type); setResult(null); setSimError(null); }}
@@ -231,7 +245,7 @@ export const WhatIf: React.FC = () => {
 
       {/* Sim Error */}
       {simError && (
-        <div className="card p-4 border-l-4 border-l-danger bg-red-50">
+        <div className="card p-4 border-l-4 border-l-danger bg-danger/10">
           <p className="text-sm text-danger font-medium">{simError}</p>
         </div>
       )}
@@ -246,10 +260,10 @@ export const WhatIf: React.FC = () => {
             </h2>
             <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
               result.impact.buffer_status_change === 'maintained' || result.impact.buffer_status_change === 'restored'
-                ? 'bg-green-50 text-positive border border-green-100'
+                ? 'bg-positive/10 text-positive border border-positive/20'
                 : result.impact.buffer_status_change === 'improved_but_still_breached'
-                ? 'bg-amber-50 text-warning border border-amber-100'
-                : 'bg-red-50 text-danger border border-red-100'
+                ? 'bg-warning/10 text-warning border border-warning/20'
+                : 'bg-danger/10 text-danger border border-danger/20'
             }`}>
               Buffer: {result.impact.buffer_status_change.replace(/_/g, ' ')}
             </span>
@@ -279,12 +293,12 @@ export const WhatIf: React.FC = () => {
           />
 
           {/* Impact summary */}
-          <div className="card p-5 mt-6 border-l-4 border-l-primary-accent bg-blue-50/20">
+          <div className="card p-5 mt-6 border-l-4 border-l-primary-accent bg-primary-accent/5">
             <h3 className="text-sm font-bold text-primary-dark mb-3 flex items-center gap-2">
               <TrendingUp size={16} className="text-primary-accent" />
               Expected Impact
             </h3>
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div>
                 <p className="text-xs text-muted mb-1">Cash Flow Change</p>
                 <p className={`text-lg font-bold ${result.impact.cash_flow_difference >= 0 ? 'text-positive' : 'text-danger'}`}>
@@ -308,7 +322,7 @@ export const WhatIf: React.FC = () => {
               </div>
             </div>
             
-            <div className="pt-4 border-t border-slate-200">
+            <div className="pt-4 border-t border-border">
               <h4 className="text-xs font-bold text-primary-dark uppercase tracking-wider mb-2">Recommendation</h4>
               <p className="text-sm text-primary-dark">
                 {result.impact.buffer_status_change === 'breached' || result.impact.buffer_status_change === 'improved_but_still_breached'
@@ -319,7 +333,7 @@ export const WhatIf: React.FC = () => {
           </div>
 
           {/* Methodology note (acting as decision trace info here) */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <div className="bg-background shadow-sm border border-border rounded-xl p-4">
             <p className="text-sm text-primary-dark font-medium mb-1">Decision Trace</p>
             <p className="text-xs text-muted">
               Observed baseline income and expenses → Applied scenario delta ({formatCurrency(parseFloat(amount), currency)}) → Simulated resulting cash flow → Compared against minimum buffer limit to generate recommendation.
@@ -330,7 +344,7 @@ export const WhatIf: React.FC = () => {
 
       {/* Empty state with copilot tip */}
       {!result && !simError && (
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+        <div className="bg-primary-accent/10 border border-primary-accent/20 rounded-xl p-4">
           <p className="text-sm text-primary-dark font-medium mb-1">💡 Try Artha AI</p>
           <p className="text-xs text-muted">
             You can also ask Artha AI natural-language questions like{' '}

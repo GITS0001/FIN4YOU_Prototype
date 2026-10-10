@@ -1,26 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
-
 import { useCopilot } from '../../hooks/useCopilot';
 import { useFinancialProfile } from '../../hooks/useFinancialProfile';
+import { useBackendStatus } from '../../hooks/useBackendStatus';
 import { ChatMessage } from './ChatMessage';
-import { Send, Trash2, ChevronRight } from 'lucide-react';
-
-const SUGGESTED_PROMPTS = [
-  "I want to purchase an iPhone for ₹1,302.40",
-  "How much should I save for an emergency fund?",
-  "Can I afford to buy a car in 6 months?",
-  "What if I invest ₹5,000 monthly?",
-  "Give me a summary of my finances",
-];
+import { Send, Trash2, Sparkles, Wifi, CreditCard, ShieldCheck, Car, TrendingUp, BarChart } from 'lucide-react';
+import { formatCurrencySymbol } from '../../utils/format';
+import arthaAiLogo from '../../assets/artha_ai_logo.jpg';
 
 export const CopilotChat: React.FC = () => {
   const { data: profile } = useFinancialProfile();
+  const { status } = useBackendStatus();
   const { messages, isLoading, sendMessage, clearMessages } = useCopilot();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const currency = profile?.home_currency || 'USD';
+  const sym = formatCurrencySymbol(currency);
+
+  const SUGGESTED_PROMPTS = [
+    { icon: CreditCard, label: `I want to purchase an iPhone for ${sym}1,302`, category: 'Affordability' },
+    { icon: ShieldCheck, label: 'How much should I save for an emergency fund?', category: 'Risk Buffer' },
+    { icon: Car, label: 'Can I afford to buy a car in 6 months?', category: 'Goals' },
+    { icon: TrendingUp, label: `What if I invest ${sym}5,000 monthly?`, category: 'Simulation' },
+    { icon: BarChart, label: 'Give me an executive summary of my finances', category: 'Summary' },
+  ];
 
   // Auto-scroll
   useEffect(() => {
@@ -49,58 +53,79 @@ export const CopilotChat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ height: 'calc(100vh - var(--topbar-height) - 64px)' }}>
+    <div className="flex flex-col" style={{ height: '100%', minHeight: 0 }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        {messages.length > 0 && (
-          <button
-            className="btn-ghost flex items-center gap-1.5 text-xs"
-            onClick={clearMessages}
-            aria-label="Clear conversation"
-          >
-            <Trash2 size={13} aria-hidden="true" />
-            Clear conversation
-          </button>
-        )}
-        {messages.length === 0 && <div />}
-        {profile && (
-          <span className="badge-neutral text-xs">
-            {profile.user_id} · {profile.home_currency}
-          </span>
-        )}
+      <div className="flex items-center justify-between pb-3 mb-2 border-b border-border/70">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full overflow-hidden shadow-sm flex items-center justify-center bg-white">
+            <img src={arthaAiLogo} alt="Artha AI Logo" className="w-full h-full object-cover" />
+          </div>
+          <div className="w-2.5 h-2.5 rounded-full bg-positive animate-pulse ml-1" />
+          <span className="text-xs font-semibold text-primary-dark tracking-wide">Artha AI Assistant Engine</span>
+          <span className="text-2xs bg-primary-accent/10 text-primary-accent px-2 py-0.5 rounded-full font-medium border border-primary-accent/20">v2.4 Ready</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <button
+              className="btn-ghost flex items-center gap-1.5 text-xs text-muted hover:text-danger"
+              onClick={clearMessages}
+              aria-label="Clear conversation"
+            >
+              <Trash2 size={13} aria-hidden="true" />
+              Clear Chat
+            </button>
+          )}
+          {profile && (
+            <span className="badge-neutral text-xs">
+              {profile.user_id} · {profile.home_currency}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Messages area */}
       <div
-        className="flex-1 overflow-y-auto space-y-4 pb-4"
+        className="flex-1 overflow-y-auto space-y-4 py-2 px-1"
         role="log"
         aria-label="Conversation"
         aria-live="polite"
       >
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <div className="w-14 h-14 bg-sidebar-bg rounded-2xl flex items-center justify-center mb-4">
-              <span className="text-white text-xl font-bold">F</span>
+          <div className="flex flex-col items-center justify-center h-full text-center py-8">
+            <div className="w-14 h-14 bg-gradient-to-tr from-primary-accent to-purple rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-primary-accent/20">
+              <Sparkles size={24} className="text-white animate-pulse" />
             </div>
-            <h2 className="text-lg font-semibold text-primary-dark mb-1">Artha AI</h2>
-            <p className="text-sm text-muted max-w-xs mb-8">
-              Ask questions about your money, spending, and future plans.
+            <h2 className="text-xl font-bold text-primary-dark mb-1">How can I help your finances today?</h2>
+            <p className="text-xs text-muted max-w-sm mb-4">
+              Ask natural-language questions to analyze spending, run scenario simulations, or verify affordability constraints.
             </p>
 
-            {/* Suggestions */}
-            <div className="w-full max-w-lg">
-              <p className="label-sm mb-3 text-center">Try asking</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {SUGGESTED_PROMPTS.map((prompt) => (
+            {/* Backend status hint */}
+            {status === 'offline' && (
+              <div className="flex items-center gap-2 mb-6 px-4 py-2.5 bg-warning/10 border border-warning/30 rounded-xl">
+                <Wifi size={14} className="text-warning flex-shrink-0" />
+                <p className="text-xs font-medium text-warning-dark">Backend server offline — start server on port 8000 for AI responses.</p>
+              </div>
+            )}
+
+            {/* Suggestions Grid */}
+            <div className="w-full max-w-xl mt-2">
+              <p className="text-2xs font-semibold text-muted uppercase tracking-wider mb-3 text-center">Suggested Prompts</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {SUGGESTED_PROMPTS.map((item) => (
                   <button
-                    key={prompt}
-                    className="text-left text-sm px-3.5 py-2.5 rounded-xl border border-border bg-card-bg
-                               hover:border-primary-accent hover:bg-primary-accent/5
-                               transition-all duration-150 group flex items-center justify-between gap-2"
-                    onClick={() => handleSuggestion(prompt)}
+                    key={item.label}
+                    className="text-left p-3 rounded-xl border border-border bg-card-bg shadow-sm hover:border-primary-accent hover:shadow-md hover:bg-primary-accent/5 transition-all duration-200 group flex items-start gap-3"
+                    onClick={() => handleSuggestion(item.label)}
                   >
-                    <span className="text-primary-dark">{prompt}</span>
-                    <ChevronRight size={13} className="text-muted group-hover:text-primary-accent flex-shrink-0" aria-hidden="true" />
+                    <div className="w-8 h-8 rounded-lg bg-primary-accent/10 text-primary-accent flex items-center justify-center flex-shrink-0 group-hover:bg-primary-accent group-hover:text-white transition-colors">
+                      <item.icon size={16} aria-hidden="true" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-2xs font-semibold text-primary-accent uppercase tracking-wider block mb-0.5">{item.category}</span>
+                      <p className="text-xs font-medium text-primary-dark line-clamp-2">{item.label}</p>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -114,11 +139,12 @@ export const CopilotChat: React.FC = () => {
 
         {/* Typing indicator */}
         {isLoading && (
-          <div className="flex gap-2 animate-slide-up" aria-live="polite" aria-label="FIN4YOU is thinking">
-            <div className="w-7 h-7 rounded-full bg-sidebar-bg flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-white text-xs font-bold">F</span>
+          <div className="flex gap-2.5 animate-slide-up" aria-live="polite" aria-label="Artha AI is analyzing">
+            <div className="w-8 h-8 rounded-xl bg-brand-gradient flex items-center justify-center flex-shrink-0 shadow-xs mt-0.5">
+              <Sparkles size={14} className="text-white animate-pulse" />
             </div>
-            <div className="chat-bubble-ai flex items-center gap-1 py-3.5 px-4">
+            <div className="flex items-center gap-1.5 py-3 px-4 rounded-2xl rounded-tl-sm bg-card-bg border border-border shadow-card">
+              <span className="text-xs text-muted font-medium mr-1">Artha AI is synthesizing data</span>
               <span className="typing-dot" />
               <span className="typing-dot" />
               <span className="typing-dot" />
@@ -130,11 +156,11 @@ export const CopilotChat: React.FC = () => {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-border pt-4">
-        <form onSubmit={handleSubmit} className="flex items-end gap-3">
+      <div className="border-t border-border/80 pt-3 mt-1 bg-background relative z-10">
+        <form onSubmit={handleSubmit} className="flex items-end gap-2.5">
           <div className="flex-1 relative">
             <label htmlFor="copilot-input" className="sr-only">
-              Ask FIN4YOU a financial question
+              Ask Artha AI a financial question
             </label>
             <textarea
               id="copilot-input"
@@ -142,9 +168,9 @@ export const CopilotChat: React.FC = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about your finances..."
+              placeholder="Ask Artha AI about spending, affordability, or scenario forecasts (Press Enter to send)..."
               rows={1}
-              className="form-input resize-none py-3 pr-12 leading-relaxed"
+              className="form-input resize-none py-3 pl-4 pr-12 text-sm leading-relaxed rounded-xl shadow-sm border border-border focus:border-primary-accent focus:ring-1 focus:ring-primary-accent bg-card-bg"
               style={{ minHeight: '48px', maxHeight: '140px' }}
               disabled={isLoading}
               aria-label="Financial question input"
@@ -152,19 +178,21 @@ export const CopilotChat: React.FC = () => {
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
-              className="absolute right-2.5 bottom-2.5 w-8 h-8 bg-primary-accent text-white rounded-lg
-                         flex items-center justify-center
-                         hover:bg-accent-hover transition-colors
-                         disabled:opacity-40 disabled:cursor-not-allowed"
+              className="absolute right-2 bottom-2 w-8 h-8 bg-gradient-to-r from-primary-accent to-purple text-white rounded-lg
+                         flex items-center justify-center shadow-xs hover:shadow-md hover:scale-105 active:scale-95 transition-all
+                         disabled:opacity-40 disabled:cursor-not-allowed disabled:transform-none"
               aria-label="Send message"
             >
               <Send size={14} aria-hidden="true" />
             </button>
           </div>
         </form>
-        <p className="text-2xs text-muted/60 mt-2 text-center">
-          FIN4YOU uses deterministic AI based on your actual financial data.
-        </p>
+        <div className="flex items-center justify-between mt-2 px-1">
+          <p className="text-2xs text-muted">
+            ⚡ Grounded by deterministic financial engines &amp; cash flow models.
+          </p>
+          <span className="text-2xs text-muted hidden sm:inline">Press Shift + Enter for new line</span>
+        </div>
       </div>
     </div>
   );

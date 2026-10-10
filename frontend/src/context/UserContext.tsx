@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
-// All prototype users available in the system
-export const DEMO_USERS = [
-  { id: 'user_28', label: 'Aditya (Prototype)', currency: 'INR' },
-];
+// Static prototype user (used to be an array for demo switching)
+export const DEFAULT_USER = { id: 'user_28', label: 'Aditya', currency: 'INR' };
 
 export const DEFAULT_USER_ID = 'user_28';
 

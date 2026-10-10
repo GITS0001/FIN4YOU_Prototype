@@ -49,7 +49,8 @@ class AnomalyDetector:
                     if z_score > self.std_threshold:
                         is_anomaly = True
                         score = z_score
-                        reason = f"Statistically unusual amount for category '{t.category}' (z-score: {z_score:.2f})"
+                        reason = f"Your {t.category} spending of {t.amount} is significantly higher than your usual {t.category} spending."
+                        severity = "high" if z_score > 3.0 else "medium"
 
             if is_anomaly:
                 signals.append(
@@ -57,7 +58,10 @@ class AnomalyDetector:
                         transaction_id=t.transaction_id,
                         is_anomaly=is_anomaly,
                         anomaly_score=score,
-                        reason=reason
+                        reason=reason,
+                        severity=severity,
+                        detection_method="z_score",
+                        confidence=0.95
                     )
                 )
 
