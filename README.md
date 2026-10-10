@@ -1,1 +1,176 @@
-# FIN4YOU_Prototype
+# FIN4YOU & Artha AI: Financial Intelligence, Machine Learning & Decision Engine
+
+**Production Architecture, Models, and Analytical Pipeline**  
+*HackMatrix Workspace — Member 2: Dataset, Data Processing and ML*
+
+---
+
+## 1. System Overview
+
+FIN4YOU is an intelligent financial health copilot and decision engine designed to transform raw, multi-currency financial records, bank statements, and document media into verified predictions and actionable decisions.
+
+In accordance with `workplan.txt` and `formula_sheet.docx`, the architecture enforces strict separation of concerns:
+- **Machine Learning (Scikit-Learn / RapidOCR):** Transaction categorization, calibrated uncertainty scoring, text extraction from statement PDFs and receipts.
+- **Deterministic Python Engine (NumPy / Pandas):** Mathematical financial calculations (Income, Expenses, Savings Rate, EMIs, Essential/Discretionary ratios, Z-Score anomaly detection, 90-Day forward liquidity simulation). **No LLM hallucination of financial arithmetic.**
+- **Decision Layer:** Constraint-aware affordability optimization evaluating full payments, candidate installment schedules, and cash-flow pacing.
+
+---
+
+## 2. Repository Structure
+
+```
+HACKMATRIX/
+├── artifacts/                           # Persisted model weights and manifests
+│   ├── categorizer_pipeline.joblib      # Calibrated multi-feature ML pipeline
+│   └── categorizer_metadata.json        # Training metrics & class mappings
+├── data/
+│   ├── fin4you.db                       # SQLite3 operational database
+│   ├── media/images/                    # Pay slips, receipts, and statement PNGs
+│   └── prototype/                       # Relational CSV ledgers
+│       ├── financial_events.csv         # 882 historical transactions (10 users)
+│       ├── financial_profiles.csv       # User balances, priorities, thresholds
+│       ├── request_payment_options.csv  # Installment plans and payment terms
+│       ├── requests.csv                 # Unlabeled test cohort requests (req 26-30)
+│       ├── sample_requests.csv          # Labeled sample requests (req 01-05)
+│       ├── output.csv                   # Ground truth benchmark decisions
+│       ├── messages.csv                 # Contextual payroll & contract updates
+│       └── exchange_rates.csv           # Multi-currency FX conversion rates
+├── Indian-Bank-Statements/              # AgamiAI Synthetic Bank Statements (Apache-2.0)
+│   └── train/                           # 400 statements (~64k txns across 4 layouts)
+├── fin4you/                             # Core Python package
+│   ├── config.py                        # Pathing, thresholds, and environment constants
+│   ├── data/
+│   │   ├── loader.py                    # Clean relational data loaders & imputers
+│   │   └── statement_parser.py          # PDF parser & RapidOCR deep learning pipeline
+│   ├── models/
+│   │   ├── categorizer.py               # Supervised categorizer with calibrated confidence
+│   │   ├── forecaster.py                # Next-month expense run-rate forecaster
+│   │   └── probabilistic_forecaster.py  # 6-month probabilistic forecaster with bootstrap CI
+│   ├── engine/
+│   │   ├── metrics.py                   # Complete implementation of formula_sheet.docx
+│   │   └── affordability.py             # 90-day cash-flow liquidity simulator
+│   └── db/
+│       └── sync.py                      # Synchronization service for fin4you.db
+├── reports/                             # In-depth technical deliverables
+│   ├── dataset_audit.md                 # Usability audit & scorecard
+│   ├── eda_findings.md                  # Statistical patterns & empirical facts
+│   ├── prediction_opportunities.md      # Feasibility matrix & task definitions
+│   ├── model_comparison.md              # Benchmarks, baselines & cross-validation
+│   ├── application_ideas.md             # 10 ranked strategic product ideas
+│   ├── workplan_review.md               # Traceability matrix & gap analysis
+│   └── executive_engineering_report.md  # Complete executive engineering review
+├── scripts/                             # Reproducible analysis and audit scripts
+│   ├── comprehensive_audit.py
+│   ├── train_categorizer_experiments.py
+│   ├── test_statement_parser.py
+│   ├── eval_affordability_benchmarks.py
+│   └── validate_ocr_ground_truth.py
+├── tests/                               # Comprehensive unit test suite (41 tests)
+│   ├── test_categorizer.py              # ML classification & confidence tests
+│   ├── test_calibration.py              # ECE calibration measurement tests
+│   ├── test_probabilistic_forecaster.py # 6-month forecasting & interval tests
+│   ├── test_metrics.py                  # Formula sheet calculation tests
+│   ├── test_statement_parser.py         # PDF extraction & Deep OCR tests
+│   └── test_affordability.py            # 90-day liquidity simulation tests
+├── formula_sheet.docx                   # Reference mathematical specification
+└── workplan.txt                         # Hackathon requirements & member scope
+```
+
+---
+
+## 3. Implemented Capabilities & Performance
+
+### A. Supervised Transaction Categorizer (`fin4you.models.categorizer`)
+- **Architecture:** TF-IDF (n-grams 1-2) + One-Hot Direction (`debit`/`credit`) + One-Hot Event Type $\to$ $L_2$-Regularized Logistic Regression with balanced class weights.
+- **Performance Benchmarks:**
+  - *Baseline 1 (Majority Class):* Accuracy: `24.83%`, Macro F1: `0.0209`
+  - *Baseline 2 (Keyword Heuristics):* Accuracy: `82.31%`, Macro F1: `0.9014`
+  - *Chronological Test Holdout (2025-2026):* Accuracy: `93.21%`, Macro F1: `0.8208`
+  - *5-Fold Stratified Cross-Validation:* Accuracy: `99.55% ± 0.0042`, Macro F1: `0.9944 ± 0.0069`
+- **Uncertainty Calibration:** Outputs calibrated posterior probabilities $\max P(Y=c|\mathbf{x})$. ECE = 0.0881 on out-of-time holdout. Automatically maps into `fin4you.db` columns: `ml_confidence`, `ml_status` (`confirmed` if $p \ge 0.85$ else `review_needed`), and `ml_confidence_level` (`high`, `medium`, `low`).
+
+### B. Statement Parser & Deep OCR Pipeline (`fin4you.data.statement_parser`)
+- **Digital Statement Extraction:**
+  - Extracts multi-page tables and metadata from AgamiAI Digital Type 1 and Type 2 PDFs using `pypdf`.
+  - Normalizes separate Debit/Credit columns and single Cr/Dr columns into standard FIN4YOU transactions.
+  - Automatically pipes extracted narrations into the trained ML categorizer.
+  - Validated against 10 ground-truth AgamiAI JSON files: **99.5% Type 1 and 100.0% Type 2 extraction accuracy**.
+- **Deep OCR on Document Media:**
+  - Powered by local ONNX Runtime (`rapidocr-onnxruntime`).
+  - Successfully parses `data/media/images/image_01.png` (linked to `event_253` in `images.csv`), recovering the missing August 2019 Net Pay: **IDR 4,365,000**.
+
+### C. Deterministic Financial Metrics Engine (`fin4you.engine.metrics`)
+- Executes all 18 sections of `formula_sheet.docx`:
+  - Basic Financial State (Income, Expenses, Net Cash Flow, Savings Rate %, Expense Ratio %).
+  - Essential vs Discretionary spending decomposition and Free Cash Flow.
+  - Loan & EMI calculations ($EMI = P \frac{r(1+r)^n}{(1+r)^n - 1}$, total interest, and amortization balance $B_k$).
+  - Category spending percentages and daily burn rates.
+  - Population Z-Score Anomaly Detection ($Z = \frac{x - \mu}{\sigma}$).
+
+### D. 90-Day Liquidity Simulation & Affordability Decision Engine (`fin4you.engine.affordability`)
+- Day-by-day cash balance forward simulation over a 90-day horizon from request date.
+- Accounts for salary arrival cadences (weekly, bi-weekly, monthly), contractual bills, pending float settlements, and contextual platform updates (`messages.csv`).
+- Enforces user profile constraints:
+  - Allowed payment methods (`payment_methods_user_will_consider`).
+  - Max installment tenure limits (`max_installment_months`).
+  - Contract terminations (flags `request_29` as `not_affordable` when income drops to zero).
+- Validated against ground truth:
+  - `request_26`: `affordable_now` (full_payment, 15,656,000 IDR)
+  - `request_27`: `affordable_now` (full_payment, 6,670 ZAR)
+  - `request_29`: `not_affordable` (contract ended)
+  - `request_30`: `affordable_with_plan` (installments, 775.20 USD)
+
+### E. Probabilistic & Expense Forecaster (`fin4you.models.probabilistic_forecaster`)
+- Multi-horizon (1 to 12 months, default 6 months) forward expense and cash flow predictions.
+- Bootstrap 90% confidence intervals ($p_{05}, p_{50}, p_{95}$) with seasonal/trend decomposition.
+- Evaluated on held-out completed calendar months across all 10 users:
+  - *Naive Baseline MAPE:* `6.02%`
+  - *Historical Mean (MVP Forecast) MAPE:* `5.04%`
+  - *3-Month Moving Average MAPE:* `5.16%`
+
+---
+
+## 4. How to Run and Verify
+
+### A. Run Full Test Suite (41 Tests)
+```bash
+python -m unittest discover -s tests -p "test_*.py"
+```
+
+### B. Retrain and Persist ML Categorizer
+```bash
+python -c "import sys; sys.path.insert(0, '.'); from fin4you.data.loader import load_events; from fin4you.models.categorizer import TransactionCategorizer; c = TransactionCategorizer(); c.fit(load_events()); c.save(); print('Model saved successfully!')"
+```
+
+### C. Synchronize SQLite Database (`data/fin4you.db`)
+```bash
+python -c "import sys; sys.path.insert(0, '.'); from fin4you.db.sync import sync_database; sync_database()"
+```
+
+### D. Test Statement Parsing & Deep OCR Ground Truth
+```bash
+python scripts/validate_ocr_ground_truth.py
+```
+
+### E. Run Expense Forecasting Benchmark
+```bash
+python scripts/test_forecaster.py
+```
+
+### F. Run Affordability Benchmark Evaluation
+```bash
+python scripts/eval_affordability_benchmarks.py
+```
+
+---
+
+## 5. Technical Deliverables Summary
+
+All in-depth analytical reports requested in the master prompt are located in `reports/`:
+- [`reports/dataset_audit.md`](file:///c:/Users/Kaustubh/OneDrive/Desktop/HACKMATRIX/reports/dataset_audit.md) — Structural analysis, data quality audit, and 10-point usability scorecard.
+- [`reports/eda_findings.md`](file:///c:/Users/Kaustubh/OneDrive/Desktop/HACKMATRIX/reports/eda_findings.md) — Empirical facts, low volatility proofs, and boundary truncation analysis.
+- [`reports/prediction_opportunities.md`](file:///c:/Users/Kaustubh/OneDrive/Desktop/HACKMATRIX/reports/prediction_opportunities.md) — Problem statements, target variables, and candidate tasks.
+- [`reports/model_comparison.md`](file:///c:/Users/Kaustubh/OneDrive/Desktop/HACKMATRIX/reports/model_comparison.md) — Baselines, cross-validation metrics, and calibration curves.
+- [`reports/application_ideas.md`](file:///c:/Users/Kaustubh/OneDrive/Desktop/HACKMATRIX/reports/application_ideas.md) — 10 ranked strategic product ideas with feasibility estimates.
+- [`reports/workplan_review.md`](file:///c:/Users/Kaustubh/OneDrive/Desktop/HACKMATRIX/reports/workplan_review.md) — Requirements traceability matrix and workplan audit.
+- [`reports/executive_engineering_report.md`](file:///c:/Users/Kaustubh/OneDrive/Desktop/HACKMATRIX/reports/executive_engineering_report.md) — Executive engineering report and strategic review.

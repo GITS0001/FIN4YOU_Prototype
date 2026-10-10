@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project specific
+.DS_Store
+*.DS_Store
+Indian-Bank-Statements/
+FIN4YOU_Prototype/
