@@ -113,9 +113,11 @@ class ResponseGenerator:
         elif parsed.intent == IntentType.WHAT_IF:
             bal = result.get("projected_balance", 0)
             buf_status = result.get("buffer_status_change", "maintained")
-            change_str = _fmt(abs(parsed.change_amount or 0), currency)
+            change_amount = result.get("change_amount", 0)
+            scenario_type = result.get("scenario_type", "spending_reduction")
             bal_str = _fmt(bal, currency)
-            
+            change_str = _fmt(abs(change_amount), currency)
+
             status_map = {
                 "maintained": "Your minimum buffer would be maintained.",
                 "breached": "This would breach your minimum balance buffer.",
@@ -124,12 +126,27 @@ class ResponseGenerator:
                 "worsened_breach": "This would further worsen your buffer breach.",
             }
             status_text = status_map.get(buf_status, f"Buffer status: {buf_status}")
-            
+
+            if scenario_type == "spending_increase":
+                action_text = f"If you increase spending by {change_str}"
+            elif scenario_type == "spending_reduction":
+                action_text = f"If you reduce spending by {change_str}"
+            else:
+                # no_change or unknown
+                note = result.get("note", "")
+                return (
+                    f"Here is your baseline financial projection.\\n\\n"
+                    f"Your projected balance would be {bal_str}. "
+                    f"{status_text}"
+                    + (f"\\n\\n{note}" if note else "")
+                )
+
             return (
-                f"If you reduce spending by {change_str}, "
+                f"{action_text}, "
                 f"your projected balance would be {bal_str}. "
                 f"{status_text}"
             )
+
 
         elif parsed.intent == IntentType.FINANCIAL_SUMMARY:
             bal = _fmt(result.get('balance', 0), currency)
