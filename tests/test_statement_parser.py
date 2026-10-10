@@ -4,6 +4,11 @@ Unit tests for StatementParser and OCR pipeline.
 
 import unittest
 import os
+import pytest
+
+pypdf = pytest.importorskip("pypdf")
+rapidocr = pytest.importorskip("rapidocr_onnxruntime")
+
 from fin4you.data.statement_parser import StatementParser
 
 class TestStatementParser(unittest.TestCase):

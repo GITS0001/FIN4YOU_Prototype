@@ -253,3 +253,5 @@ e2e_test.py
 
 # Accidental / stray files
 frontend/src/pages/<!doctype html>
+*.joblib
+*.pkl

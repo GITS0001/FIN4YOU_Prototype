@@ -51,15 +51,22 @@ async def upload_statement(
 
     # 3. Persist to DB (Supabase repository + local fallback)
     inserted_count = 0
+    supabase_success = False
     try:
         from app.supabase_config import is_supabase_configured
         from app.services.supabase_repository import supabase_repository
 
         # If Supabase is configured, use official repository with batch deduplication
         if is_supabase_configured():
-            tx_dicts = [t.model_dump() for t in transactions]
-            result = supabase_repository.save_transactions(user_id=str(current_user.id), transactions=tx_dicts)
-            inserted_count = result["inserted_count"]
+            try:
+                tx_dicts = [t.model_dump() for t in transactions]
+                result = supabase_repository.save_transactions(user_id=str(current_user.id), transactions=tx_dicts)
+                inserted_count = result["inserted_count"]
+                supabase_success = True
+            except Exception as e:
+                import logging
+                logging.getLogger("fin4you.statements").error(f"Supabase transaction write failed: {e}. Falling back to SQLite.")
+                supabase_success = False
 
         # Also maintain local DB session if available (for test fixture compatibility)
         if db is not None:
@@ -91,7 +98,7 @@ async def upload_statement(
             if new_db_transactions:
                 db.add_all(new_db_transactions)
                 db.commit()
-                if not is_supabase_configured():
+                if not is_supabase_configured() or not supabase_success:
                     inserted_count = len(new_db_transactions)
 
     except Exception as e:

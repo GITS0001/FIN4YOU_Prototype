@@ -26,8 +26,14 @@ export function useCopilot() {
       setError(null);
 
       try {
+        const conversation_history = messages.map(m => ({
+          role: m.role === 'ai' ? 'assistant' : 'user',
+          content: m.content
+        }));
+
         const response: CopilotResponse = await copilotApi.query({
           message: content.trim(),
+          conversation_history,
         });
 
         const aiMessage: ChatMessage = {

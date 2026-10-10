@@ -212,6 +212,7 @@ export type IntentType =
 export interface CopilotRequest {
   user_id?: string;
   message: string;
+  conversation_history?: { role: string; content: string }[];
 }
 
 export interface CopilotResponse {
@@ -223,6 +224,12 @@ export interface CopilotResponse {
   status: string;
   data_sources: string[];
   action_links?: { label: string; url: string }[];
+  observed_facts?: string[];
+  recommendations?: string[];
+  assumptions?: string[];
+  limitations?: string[];
+  trade_offs?: string[];
+  forecast_details?: Record<string, unknown>;
 }
 
 // ─── UI-specific types ────────────────────────────────────────────────────────

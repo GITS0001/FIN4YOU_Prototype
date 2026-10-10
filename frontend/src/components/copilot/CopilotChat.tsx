@@ -19,11 +19,10 @@ export const CopilotChat: React.FC = () => {
   const sym = formatCurrencySymbol(currency);
 
   const SUGGESTED_PROMPTS = [
-    { icon: CreditCard, label: `I want to purchase an iPhone for ${sym}1,302`, category: 'Affordability' },
-    { icon: ShieldCheck, label: 'How much should I save for an emergency fund?', category: 'Risk Buffer' },
-    { icon: Car, label: 'Can I afford to buy a car in 6 months?', category: 'Goals' },
-    { icon: TrendingUp, label: `What if I invest ${sym}5,000 monthly?`, category: 'Simulation' },
-    { icon: BarChart, label: 'Give me an executive summary of my finances', category: 'Summary' },
+    { icon: CreditCard, label: 'Where am I spending the most?', category: 'Spending' },
+    { icon: TrendingUp, label: `What if I spend ${sym}2,000 less on food?`, category: 'Simulation' },
+    { icon: ShieldCheck, label: `Can I afford a ${sym}15,000 purchase?`, category: 'Affordability' },
+    { icon: BarChart, label: 'What happens if my income drops by 20%?', category: 'Simulation' },
   ];
 
   // Auto-scroll

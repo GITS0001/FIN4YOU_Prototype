@@ -1,385 +1,323 @@
-from typing import Optional, List, Dict
-from app.schemas.copilot import CopilotRequest, CopilotResponse, ParsedIntent, IntentType, ActionLink
-from app.copilot.intent_parser import IntentParser
-from app.copilot.response_generator import ResponseGenerator
-from app.services.db_service import get_user_profile, get_user_transactions
-from app.financial.state import FinancialStateEngine
+import os
+import logging
+from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
-from app.ml.forecasting import PredictionEngine
-from app.decision.engine import DecisionEngine
-from app.decision.affordability import AffordabilityEngine
-from app.decision.simulation import WhatIfSimulator
-from app.decision.impact import ImpactEngine
-from app.schemas.financial import PaymentOption
-from app.schemas.decision import DecisionTrace, Recommendation, ExpectedImpact
-
 import pandas as pd
 
+from app.schemas.copilot import (
+    CopilotRequest, CopilotResponse, ParsedIntent, IntentType, ActionLink
+)
+from app.schemas.decision import DecisionTrace, Recommendation, ExpectedImpact
+from app.copilot.provider import get_llm_provider, BaseLLMProvider
+from app.copilot.intent_parser import IntentParser
+from app.copilot.response_generator import ResponseGenerator
+from app.copilot.tools import (
+    FINANCIAL_TOOLS,
+    SpendingAnalysisArgs, FinancialSummaryArgs, AffordabilityCheckArgs,
+    WhatIfSimulationArgs, CashFlowForecastArgs, ActionPlanArgs, RecommendationArgs
+)
+from app.services.db_service import get_user_profile, get_user_transactions
+
+logger = logging.getLogger("fin4you.artha_orchestrator")
+
+
 class CopilotOrchestrator:
-    def __init__(self, data_dir: str = "data/prototype"):
-        self.parser = IntentParser()
-        self.generator = ResponseGenerator()
+    """
+    Artha AI Financial Health Copilot Orchestrator.
+    Coordinates:
+    - User authentication and financial state extraction
+    - Intent parsing (LLM-assisted + deterministic fallback)
+    - Pydantic-validated tool dispatch to deterministic financial services
+    - Structured explanation and decision-trace generation
+    - Safe conversational response delivery
+    """
+
+    def __init__(self, provider: Optional[BaseLLMProvider] = None, data_dir: str = "data/prototype"):
+        self.provider = provider or get_llm_provider()
+        self.parser = IntentParser(provider=self.provider)
+        self.generator = ResponseGenerator(provider=self.provider)
         self.data_dir = data_dir
 
-        try:
-            self.payment_opts_df = pd.read_csv(f"{self.data_dir}/request_payment_options.csv")
-        except FileNotFoundError:
-            self.payment_opts_df = pd.DataFrame()
-
     def process_query(self, request: CopilotRequest, db: Session) -> CopilotResponse:
-        # Find user
+        # 1. Resolve user ID and retrieve financial state
+        user_id_raw = request.user_id
+        if not user_id_raw:
+            raise ValueError("Missing user id")
+
+        # Support integer IDs as well as strings like "user_28"
         try:
-            uid = int(request.user_id)
-        except ValueError:
-            raise ValueError("Invalid user id")
+            uid = int(user_id_raw)
+        except (ValueError, TypeError):
+            uid = user_id_raw
 
         profile = get_user_profile(db, uid)
         if not profile:
-            raise ValueError(f"User {request.user_id} not found")
+            raise ValueError(f"User {user_id_raw} not found")
 
         currency = profile.home_currency
+        user_events = get_user_transactions(db, uid)
 
-        # Parse Intent
-        parsed = self.parser.parse(request.message)
+        # 2. Parse User Intent
+        parsed = self.parser.parse(request.message, request.conversation_history)
 
-        if parsed.intent == IntentType.UNKNOWN:
-            resp_text = self.generator.generate(parsed, {}, currency)
+        # 3. Handle Missing Data Clarification Queries
+        if parsed.intent == IntentType.MISSING_DATA_CLARIFICATION:
+            res_dict = {
+                "current_balance": profile.current_available_balance,
+                "minimum_buffer": profile.minimum_balance_to_keep,
+            }
+            resp_text = self.generator.generate(parsed, res_dict, currency=currency, user_message=request.message)
+            comp = self.generator.get_components(parsed, res_dict, currency=currency)
             return CopilotResponse(
                 intent=parsed.intent,
                 response=resp_text,
-                confidence="UNKNOWN",
-                status="UNSUPPORTED"
+                direct_answer=comp["direct_answer"],
+                observed_facts=comp["observed_facts"],
+                forecast_details=comp["forecast_details"],
+                recommendations=comp["recommendations"],
+                assumptions=comp["assumptions"],
+                limitations=comp["limitations"],
+                trade_offs=comp["trade_offs"],
+                confidence="HIGH",
+                status="SUCCESS",
+                data_sources=["financial_profiles", "financial_events"],
+                llm_provider=self.provider.name,
+                action_links=[
+                    ActionLink(label="Profile Settings", url="/profile"),
+                    ActionLink(label="Insights", url="/insights")
+                ]
             )
 
-        # Retrieve Financial Context
-        user_events = get_user_transactions(db, uid)
-        state = FinancialStateEngine(profile.user_id).calculate_state(user_events)
-        pred = PredictionEngine().run_prediction(user_events, profile)
-
-        if not pred.available and parsed.intent not in [IntentType.FINANCIAL_SUMMARY, IntentType.SPENDING_ANALYSIS]:
-            resp_text = self.generator.generate(parsed, {"status": "INSUFFICIENT_DATA"}, currency)
+        # 4. Handle Unknown / Unsupported Queries
+        if parsed.intent == IntentType.UNKNOWN:
+            resp_text = self.generator.generate(parsed, {}, currency=currency, user_message=request.message)
+            comp = self.generator.get_components(parsed, {}, currency=currency)
             return CopilotResponse(
                 intent=parsed.intent,
                 response=resp_text,
+                direct_answer=comp["direct_answer"],
+                observed_facts=comp["observed_facts"],
+                recommendations=comp["recommendations"],
+                limitations=comp["limitations"],
+                confidence="UNKNOWN",
+                status="UNSUPPORTED",
+                data_sources=[],
+                llm_provider=self.provider.name,
+                action_links=[
+                    ActionLink(label="Dashboard", url="/dashboard"),
+                    ActionLink(label="Affordability", url="/affordability")
+                ]
+            )
+
+        # 5. Guard: If transaction records are empty and intent requires history
+        if not user_events and parsed.intent not in [IntentType.FINANCIAL_SUMMARY]:
+            res_dict = {"status": "INSUFFICIENT_DATA"}
+            resp_text = self.generator.generate(parsed, res_dict, currency=currency, user_message=request.message)
+            comp = self.generator.get_components(parsed, res_dict, currency=currency)
+            return CopilotResponse(
+                intent=parsed.intent,
+                response=resp_text,
+                direct_answer=comp["direct_answer"],
+                observed_facts=comp["observed_facts"],
+                recommendations=comp["recommendations"],
+                limitations=comp["limitations"],
                 confidence="UNKNOWN",
                 status="INSUFFICIENT_DATA",
-                data_sources=["financial_profiles", "financial_events"]
+                data_sources=["financial_profiles"],
+                llm_provider=self.provider.name,
+                action_links=[ActionLink(label="Upload Statement", url="/statements")]
             )
 
-        structured_res = {}
-        trace = None
+        # 6. Execute Deterministic Tool Dispatch
+        structured_res: Dict[str, Any] = {}
+        trace: Optional[DecisionTrace] = None
         status = "SUCCESS"
-        action_links = []
+        action_links: List[ActionLink] = []
 
-        if parsed.intent == IntentType.AFFORDABILITY_CHECK:
-            if not parsed.amount or parsed.amount <= 0:
-                return CopilotResponse(
-                    intent=parsed.intent,
-                    response=f"Please specify a valid purchase amount. For example: 'Can I afford {currency} 1,000?'",
-                    confidence="UNKNOWN",
-                    status="ERROR"
-                )
-            aff_eng = AffordabilityEngine(profile, pred)
-            try:
-                requests_df = pd.read_csv(f"{self.data_dir}/requests.csv")
-                req_id = None
-                for _, r in requests_df.iterrows():
-                    if r["user_id"] == profile.user_id and abs(r["requested_amount"] - parsed.amount) < 1.0:
-                        req_id = r["request_id"]
-                        break
-                po_list = []
-                if req_id and not self.payment_opts_df.empty:
-                    opts = self.payment_opts_df[self.payment_opts_df["request_id"] == req_id]
-                    for _, o in opts.iterrows():
-                        pfq = o["payment_frequency_days"]
-                        if pd.isna(pfq): pfq = None
-                        po_list.append(PaymentOption(
-                            payment_option_id=o["payment_option_id"],
-                            request_id=o["request_id"],
-                            payment_method=o["payment_method"],
-                            payment_amount=o["payment_amount"],
-                            number_of_payments=o["number_of_payments"],
-                            first_payment_date=o["first_payment_date"],
-                            payment_frequency_days=pfq,
-                            financing_fee=o["financing_fee"],
-                            total_payable_amount=o["total_payable_amount"]
-                        ))
-            except Exception:
-                po_list = []
+        try:
+            # --- AFFORDABILITY CHECK ---
+            if parsed.intent in [IntentType.AFFORDABILITY_CHECK, IntentType.PAYMENT_OPTION_ANALYSIS]:
+                if not parsed.amount or parsed.amount <= 0:
+                    return CopilotResponse(
+                        intent=parsed.intent,
+                        response=f"Please specify a valid purchase amount. For example: 'Can I afford a purchase worth {currency} 1,000?'",
+                        confidence="UNKNOWN",
+                        status="ERROR",
+                        limitations=["A valid positive amount is required to evaluate purchase affordability."]
+                    )
 
-            res = aff_eng.evaluate_purchase(parsed.amount, po_list)
-            structured_res = {
-                "type": "affordability",
-                "affordability_status": res.status,
-                "proposed_amount": parsed.amount,
-                "resulting_balance": res.resulting_balance,
-                "shortfall": res.shortfall,
-                "trade_off": res.trade_off_required,
-                "viable_options": [o.model_dump() for o in res.viable_payment_options],
-                "current_balance": profile.current_available_balance,
-                "minimum_buffer": profile.minimum_balance_to_keep,
-                "projected_cash_flow": pred.projected_cash_flow.projected_cash_flow if pred.projected_cash_flow else 0,
-                "reasons": res.reasons,
-                "currency": currency,
-            }
+                tool_args = AffordabilityCheckArgs(purchase_amount=parsed.amount)
+                structured_res = FINANCIAL_TOOLS["check_affordability"]["executor"](tool_args, profile, user_events)
+                structured_res["type"] = "affordability"
+                structured_res["proposed_amount"] = parsed.amount
 
-            simulation_text = (
-                f"Resulting balance if paid upfront: {res.resulting_balance:.2f}. "
-                + " | ".join(res.reasons[-2:])  # include last two reasons for brevity
-            )
-            trace = DecisionTrace(
-                observed_fact=f"Current balance: {profile.current_available_balance:.2f}. Required buffer: {profile.minimum_balance_to_keep:.2f}.",
-                calculation=f"Proposed purchase: {parsed.amount:.2f}. Projected net cash flow: {pred.projected_cash_flow.projected_cash_flow if pred.projected_cash_flow else 0:.2f}.",
-                prediction=f"Projected balance after purchase: {res.resulting_balance:.2f}. Shortfall vs buffer: {res.shortfall:.2f}.",
-                simulation=simulation_text,
-                recommendation=Recommendation(
-                    recommendation_type="AFFORDABILITY",
-                    actionable_text=(
-                        "Consider paying in installments"
-                        if res.status == "NOT AFFORDABLE UNDER CURRENT PROJECTION" and len(res.viable_payment_options) > 0
-                        else ("Avoid this purchase or save more first" if res.status == "NOT AFFORDABLE UNDER CURRENT PROJECTION"
-                              else "Proceed with purchase")
+                # Build Decision Trace
+                resulting_b = structured_res.get("resulting_balance", 0.0)
+                aff_status = structured_res.get("affordability_status", "")
+                shortfall = structured_res.get("shortfall", 0.0)
+                viable_opts = structured_res.get("viable_options", [])
+
+                trace = DecisionTrace(
+                    observed_fact=f"Current balance: {profile.current_available_balance:.2f}. Required buffer: {profile.minimum_balance_to_keep:.2f}.",
+                    calculation=f"Proposed purchase: {parsed.amount:.2f}. Projected net cash flow: {structured_res.get('projected_net_cash_flow', 0.0):.2f}.",
+                    prediction=f"Projected balance after purchase: {resulting_b:.2f}. Shortfall vs buffer: {shortfall:.2f}.",
+                    simulation=f"Resulting balance if paid upfront: {resulting_b:.2f}. Buffer shortfall: {shortfall:.2f}.",
+                    recommendation=Recommendation(
+                        recommendation_type="AFFORDABILITY",
+                        actionable_text=(
+                            "Consider paying in installments"
+                            if aff_status != "AFFORDABLE" and len(viable_opts) > 0
+                            else ("Avoid upfront purchase or save more first" if aff_status != "AFFORDABLE" else "Proceed with purchase")
+                        ),
+                        expected_impact=ExpectedImpact(
+                            cash_flow_difference=0.0,
+                            balance_difference=-parsed.amount,
+                            buffer_status_change="breached" if resulting_b < profile.minimum_balance_to_keep else "maintained"
+                        ),
+                        confidence_level="HIGH",
+                        confidence_reason="Deterministic calculation based on projected cash flow and user profile."
                     ),
-                    expected_impact=ExpectedImpact(
-                        cash_flow_difference=0,
-                        balance_difference=-parsed.amount,
-                        buffer_status_change="breached" if res.resulting_balance < profile.minimum_balance_to_keep else "maintained"
-                    ),
-                    confidence_level="HIGH",
-                    confidence_reason="Deterministic calculation based on projected cash flow and user profile."
-                ),
-                supporting_data={"shortfall": res.shortfall, "trade_off_required": res.trade_off_required}
-            )
-
-            action_links = [
-                ActionLink(label="Affordability Tool", url="/affordability"),
-                ActionLink(label="What-If Simulator", url="/what-if")
-            ]
-
-        elif parsed.intent == IntentType.PAYMENT_OPTION_ANALYSIS:
-            if not parsed.amount or parsed.amount <= 0:
-                return CopilotResponse(
-                    intent=parsed.intent,
-                    response="Please specify a valid purchase amount to check installment options.",
-                    confidence="UNKNOWN",
-                    status="ERROR"
+                    supporting_data={"shortfall": shortfall, "trade_off_required": structured_res.get("trade_off_required", 0.0)}
                 )
 
-            try:
-                requests_df = pd.read_csv(f"{self.data_dir}/requests.csv")
-                req_id = None
-                for _, r in requests_df.iterrows():
-                    if r["user_id"] == profile.user_id and abs(r["requested_amount"] - parsed.amount) < 1.0:
-                        req_id = r["request_id"]
-                        break
-                po_list = []
-                if req_id and not self.payment_opts_df.empty:
-                    opts = self.payment_opts_df[self.payment_opts_df["request_id"] == req_id]
-                    for _, o in opts.iterrows():
-                        pfq = o["payment_frequency_days"]
-                        if pd.isna(pfq): pfq = None
-                        po_list.append(PaymentOption(
-                            payment_option_id=o["payment_option_id"],
-                            request_id=o["request_id"],
-                            payment_method=o["payment_method"],
-                            payment_amount=o["payment_amount"],
-                            number_of_payments=o["number_of_payments"],
-                            first_payment_date=o["first_payment_date"],
-                            payment_frequency_days=pfq,
-                            financing_fee=o["financing_fee"],
-                            total_payable_amount=o["total_payable_amount"]
-                        ))
-            except Exception:
-                po_list = []
+                action_links = [
+                    ActionLink(label="Affordability Tool", url="/affordability"),
+                    ActionLink(label="What-If Simulator", url="/what-if")
+                ]
 
-            aff_eng = AffordabilityEngine(profile, pred)
-            res = aff_eng.evaluate_purchase(parsed.amount, po_list)
-            structured_res = {
-                "type": "payment_options",
-                "affordability_status": res.status,
-                "proposed_amount": parsed.amount,
-                "resulting_balance": res.resulting_balance,
-                "viable_options": [o.model_dump() for o in res.viable_payment_options],
-                "current_balance": profile.current_available_balance,
-                "minimum_buffer": profile.minimum_balance_to_keep,
-                "currency": currency,
-            }
+            # --- WHAT-IF SIMULATION ---
+            elif parsed.intent == IntentType.WHAT_IF:
+                tool_args = WhatIfSimulationArgs(
+                    change_amount=parsed.change_amount,
+                    category=parsed.category,
+                    income_shock_percentage=parsed.income_shock_percentage or 0.0,
+                    unexpected_expense=parsed.unexpected_expense or 0.0
+                )
+                structured_res = FINANCIAL_TOOLS["simulate_what_if"]["executor"](tool_args, profile, user_events)
+                structured_res["type"] = "what_if"
 
-            action_links = [
-                ActionLink(label="Affordability Tool", url="/affordability")
-            ]
+                action_links = [
+                    ActionLink(label="Open Simulator", url="/what-if"),
+                    ActionLink(label="View Forecast", url="/forecast")
+                ]
 
-        elif parsed.intent == IntentType.WHAT_IF:
-            sim = WhatIfSimulator(profile, pred)
-            baseline = sim.baseline_scenario()
+            # --- PLAN EVALUATION & STRATEGY COMPARISON ---
+            elif parsed.intent in [IntentType.PLAN_EVALUATION, IntentType.GOAL_FEASIBILITY]:
+                tool_args = ActionPlanArgs(
+                    horizon_months=parsed.horizon_months or 6,
+                    income_shock_percentage=parsed.income_shock_percentage or 0.0,
+                    unexpected_expense=parsed.unexpected_expense or 0.0
+                )
+                structured_res = FINANCIAL_TOOLS["evaluate_action_plans"]["executor"](tool_args, profile, user_events)
+                structured_res["type"] = "action_plan"
 
-            change = parsed.change_amount
+                action_links = [
+                    ActionLink(label="Financial Planner", url="/planner"),
+                    ActionLink(label="View Forecast", url="/forecast")
+                ]
 
-            if change is None or change == 0:
-                # No valid change specified – return baseline as the scenario
-                structured_res = {
-                    "type": "what_if",
-                    "scenario_type": "no_change",
-                    "projected_balance": baseline.projected_balance,
-                    "baseline_cash_flow": baseline.projected_cash_flow,
-                    "scenario_cash_flow": baseline.projected_cash_flow,
-                    "buffer_status_change": "maintained" if not baseline.buffer_breached else "breached",
-                    "buffer_breached": baseline.buffer_breached,
-                    "minimum_buffer": profile.minimum_balance_to_keep,
-                    "change_amount": 0.0,
-                    "currency": currency,
-                    "note": "No change amount was specified; showing baseline projection.",
-                }
-            elif change < 0:
-                # Spending REDUCTION scenario (change_amount negative means less spending)
-                reduction = abs(change)
-                scenario = sim.simulate_reduce_discretionary_spending(reduction)
-                impact = ImpactEngine.calculate_impact(baseline, scenario)
-                summary = sim.compute_what_if_summary(baseline, scenario)
-                structured_res = {
-                    "type": "what_if",
-                    "scenario_type": "spending_reduction",
-                    "baseline_balance": baseline.projected_balance,
-                    "scenario_balance": scenario.projected_balance,
-                    "baseline_cash_flow": baseline.projected_cash_flow,
-                    "scenario_cash_flow": scenario.projected_cash_flow,
-                    "cash_flow_change": impact.cash_flow_difference,
-                    "balance_change": impact.balance_difference,
-                    "projected_balance": scenario.projected_balance,
-                    "buffer_status_change": impact.buffer_status_change,
-                    "buffer_breached": scenario.buffer_breached,
-                    "minimum_buffer": profile.minimum_balance_to_keep,
-                    "change_amount": reduction,
-                    "monthly_summary": summary.model_dump(),
-                    "currency": currency,
-                }
-            else:
-                # Spending INCREASE scenario (change_amount positive means more spending)
-                scenario = sim.simulate_increase_spending(change)
-                impact = ImpactEngine.calculate_impact(baseline, scenario)
-                summary = sim.compute_what_if_summary(baseline, scenario)
-                structured_res = {
-                    "type": "what_if",
-                    "scenario_type": "spending_increase",
-                    "baseline_balance": baseline.projected_balance,
-                    "scenario_balance": scenario.projected_balance,
-                    "baseline_cash_flow": baseline.projected_cash_flow,
-                    "scenario_cash_flow": scenario.projected_cash_flow,
-                    "cash_flow_change": impact.cash_flow_difference,
-                    "balance_change": impact.balance_difference,
-                    "projected_balance": scenario.projected_balance,
-                    "buffer_status_change": impact.buffer_status_change,
-                    "buffer_breached": scenario.buffer_breached,
-                    "minimum_buffer": profile.minimum_balance_to_keep,
-                    "change_amount": change,
-                    "monthly_summary": summary.model_dump(),
-                    "currency": currency,
-                }
+            # --- SPENDING ANALYSIS ---
+            elif parsed.intent == IntentType.SPENDING_ANALYSIS:
+                tool_args = SpendingAnalysisArgs(category=parsed.category)
+                structured_res = FINANCIAL_TOOLS["analyze_spending"]["executor"](tool_args, profile, user_events)
+                structured_res["type"] = "spending_analysis"
 
-            action_links = [
-                ActionLink(label="Open Simulator", url="/what-if")
-            ]
+                action_links = [
+                    ActionLink(label="Detailed Insights", url="/insights"),
+                    ActionLink(label="Dashboard", url="/dashboard")
+                ]
 
-        elif parsed.intent == IntentType.RECOMMENDATION:
-            dec_eng = DecisionEngine(profile, state, pred)
-            trace = dec_eng.generate_recommendation_for_gap()
-            if trace:
-                structured_res = {
-                    "type": "recommendation",
-                    "recommendation_text": trace.recommendation.actionable_text,
-                    "confidence_level": trace.recommendation.confidence_level,
-                    "confidence_reason": trace.recommendation.confidence_reason,
-                    "cash_flow_difference": trace.recommendation.expected_impact.cash_flow_difference,
-                    "balance_difference": trace.recommendation.expected_impact.balance_difference,
-                    "buffer_status_change": trace.recommendation.expected_impact.buffer_status_change,
-                    "observed_fact": trace.observed_fact,
-                    "calculation": trace.calculation,
-                    "prediction": trace.prediction,
-                    "simulation": trace.simulation,
-                    "currency": currency,
-                }
-            else:
-                structured_res = {
-                    "type": "recommendation",
-                    "recommendation_text": None,
-                    "currency": currency,
-                }
+            # --- CASH FLOW FORECAST ---
+            elif parsed.intent == IntentType.CASH_FLOW_FORECAST:
+                tool_args = CashFlowForecastArgs(
+                    horizon_months=parsed.horizon_months or 6,
+                    income_shock_percentage=parsed.income_shock_percentage or 0.0
+                )
+                structured_res = FINANCIAL_TOOLS["forecast_cash_flow"]["executor"](tool_args, profile, user_events)
+                structured_res["type"] = "cash_flow_forecast"
 
-            action_links = [
-                ActionLink(label="View Forecast", url="/forecast")
-            ]
+                action_links = [
+                    ActionLink(label="View Full Forecast", url="/forecast"),
+                    ActionLink(label="Scenario Simulator", url="/what-if")
+                ]
 
-        elif parsed.intent == IntentType.CASH_FLOW_FORECAST:
-            if pred.projected_cash_flow:
-                sim = WhatIfSimulator(profile, pred)
-                baseline = sim.baseline_scenario()
-                structured_res = {
-                    "type": "cash_flow_forecast",
-                    "projected_income": pred.projected_cash_flow.projected_income,
-                    "projected_expenses": pred.projected_cash_flow.projected_expenses,
-                    "known_obligations": pred.projected_cash_flow.known_obligations,
-                    "projected_cash_flow": pred.projected_cash_flow.projected_cash_flow,
-                    "projected_balance": baseline.projected_balance,
-                    "buffer_breached": baseline.buffer_breached,
-                    "minimum_buffer": profile.minimum_balance_to_keep,
-                    "current_balance": profile.current_available_balance,
-                    "currency": currency,
-                }
-            else:
-                structured_res = {"type": "cash_flow_forecast", "currency": currency}
+            # --- RECOMMENDATION EXPLANATION ---
+            elif parsed.intent == IntentType.RECOMMENDATION:
+                tool_args = RecommendationArgs(category_focus=parsed.category)
+                structured_res = FINANCIAL_TOOLS["explain_recommendation"]["executor"](tool_args, profile, user_events)
+                structured_res["type"] = "recommendation"
 
-            action_links = [
-                ActionLink(label="View Full Forecast", url="/forecast")
-            ]
+                if structured_res.get("recommendation_text"):
+                    trace = DecisionTrace(
+                        observed_fact=structured_res.get("observed_fact") or f"Current balance: {profile.current_available_balance:.2f}",
+                        calculation=structured_res.get("calculation") or "Computed trailing cash-flow margin",
+                        prediction=structured_res.get("prediction") or "Cash flow projection",
+                        simulation=structured_res.get("simulation") or "Buffer preservation scenario",
+                        recommendation=Recommendation(
+                            recommendation_type=structured_res.get("recommendation_type") or "REDUCTION",
+                            actionable_text=structured_res["recommendation_text"],
+                            expected_impact=ExpectedImpact(
+                                cash_flow_difference=structured_res.get("cash_flow_difference", 0.0),
+                                balance_difference=structured_res.get("balance_difference", 0.0),
+                                buffer_status_change=structured_res.get("buffer_status_change", "maintained")
+                            ),
+                            confidence_level=structured_res.get("confidence_level", "HIGH"),
+                            confidence_reason="Derived deterministically by DecisionEngine."
+                        )
+                    )
 
-        elif parsed.intent == IntentType.FINANCIAL_SUMMARY:
-            top_categories = sorted(state.category_spending, key=lambda x: x.total_amount, reverse=True)[:3]
-            structured_res = {
-                "type": "financial_summary",
-                "balance": profile.current_available_balance,
-                "minimum_buffer": profile.minimum_balance_to_keep,
-                "cash_flow": state.cash_flow,
-                "income": state.income,
-                "expenses": state.expenses,
-                "savings": state.savings,
-                "savings_rate": state.savings_rate,
-                "expense_ratio": state.expense_ratio,
-                "essential_expenses": state.essential_expenses,
-                "discretionary_expenses": state.discretionary_expenses,
-                "top_categories": [{"category": c.category, "amount": c.total_amount} for c in top_categories],
-                "currency": currency,
-            }
+                action_links = [
+                    ActionLink(label="View Forecast", url="/forecast"),
+                    ActionLink(label="Insights", url="/insights")
+                ]
 
-            action_links = [
-                ActionLink(label="View Dashboard", url="/dashboard"),
-                ActionLink(label="View Insights", url="/insights")
-            ]
+            # --- FINANCIAL SUMMARY ---
+            elif parsed.intent == IntentType.FINANCIAL_SUMMARY:
+                tool_args = FinancialSummaryArgs()
+                structured_res = FINANCIAL_TOOLS["get_financial_summary"]["executor"](tool_args, profile, user_events)
+                structured_res["type"] = "financial_summary"
 
-        elif parsed.intent == IntentType.SPENDING_ANALYSIS:
-            top_categories = sorted(state.category_spending, key=lambda x: x.total_amount, reverse=True)[:5]
-            structured_res = {
-                "type": "spending_analysis",
-                "total_expenses": state.expenses,
-                "essential_expenses": state.essential_expenses,
-                "discretionary_expenses": state.discretionary_expenses,
-                "top_categories": [{"category": c.category, "amount": c.total_amount} for c in top_categories],
-                "anomaly_count": len([a for a in state.anomalies if a.is_anomaly]),
-                "currency": currency,
-            }
+                action_links = [
+                    ActionLink(label="View Dashboard", url="/dashboard"),
+                    ActionLink(label="View Insights", url="/insights")
+                ]
 
-            action_links = [
-                ActionLink(label="Detailed Insights", url="/insights")
-            ]
+        except Exception as e:
+            logger.error(f"Error executing tool for intent {parsed.intent}: {e}", exc_info=True)
+            status = "ERROR"
+            structured_res = {"error": str(e), "currency": currency}
 
-        resp_text = self.generator.generate(parsed, structured_res, currency)
+        # 7. Generate Grounded Explanation
+        resp_text = self.generator.generate(
+            parsed=parsed,
+            result=structured_res,
+            currency=currency,
+            user_message=request.message,
+        )
+        comp = self.generator.get_components(
+            parsed=parsed,
+            result=structured_res,
+            currency=currency,
+        )
 
         return CopilotResponse(
             intent=parsed.intent,
             response=resp_text,
+            direct_answer=comp["direct_answer"],
             decision_trace=trace,
             structured_result=structured_res,
-            confidence="HIGH" if pred.available else "MEDIUM",
+            confidence="HIGH" if len(user_events) >= 3 else "MEDIUM",
             status=status,
-            data_sources=["financial_profiles", "financial_events", "PredictionEngine", "DecisionEngine"],
-            action_links=action_links
+            data_sources=[
+                "financial_profiles", "financial_events",
+                "FinancialStateEngine", "PredictionEngine", "ConstrainedPlannerEngine", "AffordabilityEngine"
+            ],
+            action_links=action_links,
+            observed_facts=comp["observed_facts"],
+            forecast_details=comp["forecast_details"],
+            recommendations=comp["recommendations"],
+            assumptions=comp["assumptions"],
+            limitations=comp["limitations"],
+            trade_offs=comp["trade_offs"],
+            llm_provider=self.provider.name,
         )

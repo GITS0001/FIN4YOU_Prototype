@@ -11,6 +11,9 @@ class IntentType(str, Enum):
     WHAT_IF = "WHAT_IF"
     RECOMMENDATION = "RECOMMENDATION"
     PAYMENT_OPTION_ANALYSIS = "PAYMENT_OPTION_ANALYSIS"
+    PLAN_EVALUATION = "PLAN_EVALUATION"
+    GOAL_FEASIBILITY = "GOAL_FEASIBILITY"
+    MISSING_DATA_CLARIFICATION = "MISSING_DATA_CLARIFICATION"
     UNKNOWN = "UNKNOWN"
 
 class ParsedIntent(BaseModel):
@@ -19,10 +22,19 @@ class ParsedIntent(BaseModel):
     category: Optional[str] = None
     payment_option_id: Optional[str] = None
     change_amount: Optional[float] = None
+    income_shock_percentage: Optional[float] = 0.0
+    unexpected_expense: Optional[float] = 0.0
+    horizon_months: Optional[int] = None
+    target_goal_amount: Optional[float] = None
+    target_goal_months: Optional[int] = None
+    tool_name: Optional[str] = None
+    tool_args: Optional[Dict[str, Any]] = None
+    missing_fields: Optional[List[str]] = None
 
 class CopilotRequest(BaseModel):
     user_id: Optional[str] = None
     message: str
+    conversation_history: Optional[List[Dict[str, str]]] = None
 
 class ActionLink(BaseModel):
     label: str
@@ -31,9 +43,17 @@ class ActionLink(BaseModel):
 class CopilotResponse(BaseModel):
     intent: IntentType
     response: str
+    direct_answer: Optional[str] = None
     decision_trace: Optional[DecisionTrace] = None
     structured_result: Optional[Dict[str, Any]] = None
-    confidence: str # e.g. "HIGH", "UNKNOWN"
+    confidence: str # e.g. "HIGH", "MEDIUM", "UNKNOWN"
     status: str # "SUCCESS", "UNSUPPORTED", "INSUFFICIENT_DATA", "ERROR"
     data_sources: List[str] = []
     action_links: List[ActionLink] = []
+    observed_facts: List[str] = Field(default_factory=list)
+    forecast_details: Optional[Dict[str, Any]] = None
+    recommendations: List[str] = Field(default_factory=list)
+    assumptions: List[str] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)
+    trade_offs: List[str] = Field(default_factory=list)
+    llm_provider: Optional[str] = None

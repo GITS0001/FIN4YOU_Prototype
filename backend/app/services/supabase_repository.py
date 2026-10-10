@@ -64,8 +64,8 @@ class SupabaseRepository:
             if existing:
                 res = client.table("Profiles").update(data).eq("user_id", str(user_id)).execute()
             else:
-                if "id" not in data:
-                    data["id"] = str(uuid.uuid4())
+                if "id" in data:
+                    del data["id"]
                 res = client.table("Profiles").insert(data).execute()
 
             if res.data and len(res.data) > 0:
@@ -234,7 +234,8 @@ class SupabaseRepository:
                             .eq("id", existing.data[0]["id"]) \
                             .execute()
             else:
-                record["id"] = str(uuid.uuid4())
+                if "id" in record:
+                    del record["id"]
                 res = client.table("Financial_Summaries").insert(record).execute()
 
             return res.data[0] if (res.data and len(res.data) > 0) else record
@@ -301,7 +302,8 @@ class SupabaseRepository:
                             .eq("id", existing.data[0]["id"]) \
                             .execute()
             else:
-                record["id"] = str(uuid.uuid4())
+                if "id" in record:
+                    del record["id"]
                 res = client.table("Forecasts").insert(record).execute()
 
             return res.data[0] if (res.data and len(res.data) > 0) else record
@@ -362,7 +364,8 @@ class SupabaseRepository:
                             .eq("id", existing.data[0]["id"]) \
                             .execute()
             else:
-                record["id"] = str(uuid.uuid4())
+                if "id" in record:
+                    del record["id"]
                 res = client.table("Monthly_Reports").insert(record).execute()
 
             return res.data[0] if (res.data and len(res.data) > 0) else record

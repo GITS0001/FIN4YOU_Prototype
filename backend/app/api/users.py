@@ -124,8 +124,9 @@ def update_user_profile(updated_profile: dict, current_user: User = Depends(get_
     if is_supabase_configured():
         try:
             supabase_repository.upsert_profile(str(current_user.id), updated_profile)
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+            logging.getLogger("fin4you.users").error(f"Supabase profile write failed: {e}. Falling back to SQLite.")
 
     if db:
         profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
@@ -182,8 +183,9 @@ def get_user_state(current_user: User = Depends(get_current_user), db: Session =
     if is_supabase_configured():
         try:
             supabase_repository.save_financial_summary(str(current_user.id), state.model_dump())
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+            logging.getLogger("fin4you.users").error(f"Supabase state write failed: {e}. No local fallback available.")
 
     return state
 
@@ -213,8 +215,9 @@ def get_user_prediction(current_user: User = Depends(get_current_user), db: Sess
                         "raw_forecast": pred.model_dump()
                     }
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+            logging.getLogger("fin4you.users").error(f"Supabase forecast write failed: {e}. No local fallback available.")
 
     return pred
 
@@ -303,8 +306,9 @@ def get_monthly_statement(current_user: User = Depends(get_current_user), db: Se
             state = FinancialStateEngine(str(current_user.id)).calculate_state(user_events)
             rep = MonthlyReportEngine.generate_report(user_events, state)
             supabase_repository.save_monthly_report(str(current_user.id), rep)
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+            logging.getLogger("fin4you.users").error(f"Supabase monthly report write failed: {e}. No local fallback available.")
 
     return statement_response
 
@@ -625,8 +629,9 @@ def get_probabilistic_forecast(
                         "raw_forecast": p.model_dump()
                     }
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            import logging
+            logging.getLogger("fin4you.users").error(f"Supabase probabilistic forecast write failed: {e}. No local fallback available.")
 
     return result
 

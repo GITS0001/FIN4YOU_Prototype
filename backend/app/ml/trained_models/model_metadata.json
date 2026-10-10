@@ -1,0 +1,47 @@
+{
+    "model_name": "transaction_categorizer",
+    "model_type": "TF-IDF + LogisticRegression",
+    "version": "1.0.0",
+    "training_date": "2026-10-10T13:56:42.014085",
+    "training_data_identifier": "financial_events.csv",
+    "features": [
+        "description_tfidf"
+    ],
+    "classes": [
+        "cloud_storage",
+        "debt_repayment",
+        "delivery_membership",
+        "dining",
+        "education",
+        "entertainment",
+        "family_support",
+        "groceries",
+        "gym",
+        "healthcare",
+        "housing",
+        "insurance",
+        "music_subscription",
+        "rent",
+        "salary",
+        "shopping",
+        "streaming",
+        "transport",
+        "utilities"
+    ],
+    "confidence_threshold": 0.5,
+    "model_parameters": {
+        "tfidf_max_features": 5000,
+        "tfidf_ngram_range": [
+            1,
+            2
+        ],
+        "lr_class_weight": "balanced",
+        "lr_max_iter": 1000,
+        "random_state": 42
+    },
+    "evaluation_metrics": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0
+    },
+    "limitations": "WARNING: Prototype dataset is highly repetitive/synthetic. The 1.0 metrics DO NOT represent real-world accuracy. May not generalize to novel merchant names."
+}

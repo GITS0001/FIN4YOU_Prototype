@@ -11,7 +11,8 @@ from app.services.supabase_repository import supabase_repository
 def get_user_profile(db: Optional[Session], user_id: Any) -> Optional[FinancialProfile]:
     """
     Retrieves user profile. Uses Supabase repository if configured,
-    otherwise queries the SQLAlchemy session for local tests.
+    otherwise queries the SQLAlchemy session for local tests,
+    with fallback to prototype dataset for demo/test environments.
     """
     if is_supabase_configured():
         sp_profile = supabase_repository.get_profile(str(user_id))
@@ -54,28 +55,41 @@ def get_user_profile(db: Optional[Session], user_id: Any) -> Optional[FinancialP
         except Exception:
             db_profile = None
 
-        if not db_profile:
-            return None
+        if db_profile:
+            return FinancialProfile(
+                user_id=str(db_profile.user_id),
+                home_currency=db_profile.home_currency,
+                current_available_balance=db_profile.current_available_balance,
+                minimum_balance_to_keep=db_profile.minimum_balance_to_keep,
+                financial_priorities=db_profile.financial_priorities.split("|") if db_profile.financial_priorities else [],
+                expense_categories_to_protect=db_profile.expense_categories_to_protect.split("|") if db_profile.expense_categories_to_protect else [],
+                expense_categories_user_is_willing_to_reduce=db_profile.expense_categories_user_is_willing_to_reduce.split("|") if db_profile.expense_categories_user_is_willing_to_reduce else [],
+                expense_categories_user_is_willing_to_stop=db_profile.expense_categories_user_is_willing_to_stop.split("|") if db_profile.expense_categories_user_is_willing_to_stop else [],
+                payment_methods_user_will_consider=db_profile.payment_methods_user_will_consider.split("|") if db_profile.payment_methods_user_will_consider else [],
+                max_installment_months=db_profile.max_installment_months
+            )
 
-        return FinancialProfile(
-            user_id=str(db_profile.user_id),
-            home_currency=db_profile.home_currency,
-            current_available_balance=db_profile.current_available_balance,
-            minimum_balance_to_keep=db_profile.minimum_balance_to_keep,
-            financial_priorities=db_profile.financial_priorities.split("|") if db_profile.financial_priorities else [],
-            expense_categories_to_protect=db_profile.expense_categories_to_protect.split("|") if db_profile.expense_categories_to_protect else [],
-            expense_categories_user_is_willing_to_reduce=db_profile.expense_categories_user_is_willing_to_reduce.split("|") if db_profile.expense_categories_user_is_willing_to_reduce else [],
-            expense_categories_user_is_willing_to_stop=db_profile.expense_categories_user_is_willing_to_stop.split("|") if db_profile.expense_categories_user_is_willing_to_stop else [],
-            payment_methods_user_will_consider=db_profile.payment_methods_user_will_consider.split("|") if db_profile.payment_methods_user_will_consider else [],
-            max_installment_months=db_profile.max_installment_months
-        )
+    # Prototype data fallback for local demo and test fixtures
+    try:
+        from app.ingestion.loader import DataLoader
+        loader = DataLoader("data/prototype")
+        proto_profiles = loader.load_profiles()
+        u_str = str(user_id)
+        if not u_str.startswith("user_") and u_str.isdigit():
+            u_str = f"user_{u_str}"
+        for pf in proto_profiles:
+            if pf.user_id == u_str or pf.user_id == str(user_id):
+                return pf
+    except Exception:
+        pass
 
     return None
 
 def get_user_transactions(db: Optional[Session], user_id: Any) -> List[SchemaTransaction]:
     """
     Retrieves user transactions. Uses Supabase repository if configured,
-    otherwise queries the SQLAlchemy session for local tests.
+    otherwise queries the SQLAlchemy session for local tests,
+    with fallback to prototype dataset for demo/test environments.
     """
     if is_supabase_configured():
         sp_txs = supabase_repository.get_transactions(str(user_id), limit=1000)
@@ -116,25 +130,40 @@ def get_user_transactions(db: Optional[Session], user_id: Any) -> List[SchemaTra
         except Exception:
             db_transactions = []
 
-        transactions = []
-        for t in db_transactions:
-            transactions.append(SchemaTransaction(
-                transaction_id=t.transaction_id,
-                user_id=str(t.user_id),
-                event_type=t.event_type,
-                description=t.description,
-                category=t.category,
-                direction=t.direction,
-                amount=t.amount,
-                currency=t.currency,
-                event_date=t.event_date,
-                settlement_date=t.settlement_date,
-                status=t.status,
-                flexibility=t.flexibility,
-                ml_confidence=t.ml_confidence,
-                ml_status=t.ml_status,
-                ml_confidence_level=t.ml_confidence_level
-            ))
-        return transactions
+        if db_transactions:
+            transactions = []
+            for t in db_transactions:
+                transactions.append(SchemaTransaction(
+                    transaction_id=t.transaction_id,
+                    user_id=str(t.user_id),
+                    event_type=t.event_type,
+                    description=t.description,
+                    category=t.category,
+                    direction=t.direction,
+                    amount=t.amount,
+                    currency=t.currency,
+                    event_date=t.event_date,
+                    settlement_date=t.settlement_date,
+                    status=t.status,
+                    flexibility=t.flexibility,
+                    ml_confidence=t.ml_confidence,
+                    ml_status=t.ml_status,
+                    ml_confidence_level=t.ml_confidence_level
+                ))
+            return transactions
+
+    # Prototype data fallback
+    try:
+        from app.ingestion.loader import DataLoader
+        loader = DataLoader("data/prototype")
+        proto_events = loader.load_events()
+        u_str = str(user_id)
+        if not u_str.startswith("user_") and u_str.isdigit():
+            u_str = f"user_{u_str}"
+        filtered = [e for e in proto_events if e.user_id == u_str or e.user_id == str(user_id)]
+        if filtered:
+            return filtered
+    except Exception:
+        pass
 
     return []

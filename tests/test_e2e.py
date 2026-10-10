@@ -1,4 +1,6 @@
+import os
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -30,7 +32,11 @@ def override_get_db():
 
 client = TestClient(fastapi_app)
 
-def test_full_e2e_flow():
+@patch("app.api.users.is_supabase_configured", return_value=False)
+@patch("app.auth.is_supabase_configured", return_value=False)
+@patch("app.supabase_config.is_supabase_configured", return_value=False)
+def test_full_e2e_flow(mock_is_supabase_configured_users, mock_is_supabase_configured_auth, mock_is_supabase_configured):
+    os.environ["ENVIRONMENT"] = "test"
     fastapi_app.dependency_overrides.clear()
     fastapi_app.dependency_overrides[get_db] = override_get_db
 

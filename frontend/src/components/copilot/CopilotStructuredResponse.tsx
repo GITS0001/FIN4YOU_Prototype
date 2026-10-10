@@ -2,7 +2,7 @@ import React from 'react';
 import type { CopilotResponse } from '../../types';
 import { formatCurrency } from '../../utils/format';
 import { DecisionTrace } from '../shared/DecisionTrace';
-import { Shield, TrendingUp, AlertTriangle, Eye, GitFork, Lightbulb } from 'lucide-react';
+import { Shield, TrendingUp, AlertTriangle, Eye, GitFork, Lightbulb, ArrowRight } from 'lucide-react';
 
 interface CopilotStructuredResponseProps {
   response: CopilotResponse;
@@ -84,19 +84,35 @@ export const CopilotStructuredResponse: React.FC<CopilotStructuredResponseProps>
 
       {intent === 'WHAT_IF' && (
         <>
-          <Section icon={Eye} title="Observed" colorClass="bg-primary-accent/10 text-primary-accent">
-            Baseline spending and savings rates analyzed.
-          </Section>
-          <Section icon={GitFork} title="Scenario" colorClass="bg-purple-500/10 text-purple-500">
-            Adjusting spending/income categories.
-          </Section>
-          <Section icon={TrendingUp} title="Impact" colorClass="bg-warning/10 text-warning">
-            New projected balance: {formatCurrency(structured_result.projected_balance as number, currency)}.
-            Buffer status is {structured_result.buffer_status_change as string}.
-          </Section>
-          <Section icon={Lightbulb} title="Recommendation" colorClass="bg-positive/10 text-positive">
-            {structured_result.buffer_status_change === 'breached' ? 'Avoid this change if possible.' : 'This change maintains financial health.'}
-          </Section>
+          {structured_result.baseline_balance !== undefined && structured_result.scenario_balance !== undefined ? (
+            <Section icon={GitFork} title="Scenario Comparison" colorClass="bg-purple-500/10 text-purple-500">
+              <div className="flex justify-between items-center bg-background rounded p-2 mb-2">
+                <div className="text-center">
+                  <div className="text-2xs text-muted uppercase tracking-wider">Baseline Balance</div>
+                  <div className="font-semibold text-primary-dark">{formatCurrency(structured_result.baseline_balance as number, currency)}</div>
+                </div>
+                <div className="text-muted"><ArrowRight size={14} /></div>
+                <div className="text-center">
+                  <div className="text-2xs text-muted uppercase tracking-wider">Scenario Balance</div>
+                  <div className="font-semibold text-primary-dark">{formatCurrency(structured_result.scenario_balance as number, currency)}</div>
+                </div>
+              </div>
+              <div className="text-sm text-muted">
+                Buffer status: <strong>{structured_result.buffer_status_change as string}</strong>
+                {structured_result.balance_change !== undefined && ` (Change: ${formatCurrency(structured_result.balance_change as number, currency)})`}
+              </div>
+            </Section>
+          ) : (
+            <>
+              <Section icon={GitFork} title="Scenario" colorClass="bg-purple-500/10 text-purple-500">
+                Adjusting spending/income categories.
+              </Section>
+              <Section icon={TrendingUp} title="Impact" colorClass="bg-warning/10 text-warning">
+                New projected balance: {formatCurrency(structured_result.projected_balance as number, currency)}.
+                Buffer status is {structured_result.buffer_status_change as string}.
+              </Section>
+            </>
+          )}
         </>
       )}
       
@@ -117,6 +133,47 @@ export const CopilotStructuredResponse: React.FC<CopilotStructuredResponseProps>
         <div className="mt-4">
           <DecisionTrace trace={decision_trace} currency={currency} />
         </div>
+      )}
+
+      {/* Top-Level Lists */}
+      {response.observed_facts && response.observed_facts.length > 0 && (
+        <Section icon={Eye} title="Observed Facts" colorClass="bg-primary-accent/10 text-primary-accent">
+          <ul className="list-disc pl-4 space-y-1">
+            {response.observed_facts.map((f, i) => <li key={i}>{f}</li>)}
+          </ul>
+        </Section>
+      )}
+
+      {response.assumptions && response.assumptions.length > 0 && (
+        <Section icon={Lightbulb} title="Assumptions" colorClass="bg-muted/10 text-muted">
+          <ul className="list-disc pl-4 space-y-1">
+            {response.assumptions.map((a, i) => <li key={i}>{a}</li>)}
+          </ul>
+        </Section>
+      )}
+
+      {response.recommendations && response.recommendations.length > 0 && (
+        <Section icon={Shield} title="Recommendations" colorClass="bg-positive/10 text-positive">
+          <ul className="list-disc pl-4 space-y-1">
+            {response.recommendations.map((r, i) => <li key={i}>{r}</li>)}
+          </ul>
+        </Section>
+      )}
+
+      {response.trade_offs && response.trade_offs.length > 0 && (
+        <Section icon={AlertTriangle} title="Trade-offs" colorClass="bg-warning/10 text-warning">
+          <ul className="list-disc pl-4 space-y-1">
+            {response.trade_offs.map((t, i) => <li key={i}>{t}</li>)}
+          </ul>
+        </Section>
+      )}
+
+      {response.limitations && response.limitations.length > 0 && (
+        <Section icon={AlertTriangle} title="Limitations" colorClass="bg-danger/10 text-danger">
+          <ul className="list-disc pl-4 space-y-1">
+            {response.limitations.map((l, i) => <li key={i}>{l}</li>)}
+          </ul>
+        </Section>
       )}
     </div>
   );
