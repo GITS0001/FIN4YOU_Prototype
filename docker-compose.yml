@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./financial.db
+      - SECRET_KEY=${JWT_SECRET:-default_secret_key_for_dev}
+      - CORS_ORIGINS=http://localhost:3000
+    volumes:
+      - fin4you_db:/app/data
+      # The financial.db will be created in /app/data so it persists
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:8000
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  fin4you_db:
