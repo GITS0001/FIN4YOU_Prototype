@@ -5,6 +5,7 @@ Unit tests for StatementParser and OCR pipeline.
 import unittest
 import os
 import pytest
+from unittest.mock import patch, MagicMock
 
 pypdf = pytest.importorskip("pypdf")
 rapidocr = pytest.importorskip("rapidocr_onnxruntime")
@@ -17,9 +18,18 @@ class TestStatementParser(unittest.TestCase):
     def setUpClass(cls):
         cls.parser = StatementParser()
 
-    def test_parse_digital_statement_type1(self):
-        pdf_path = "Indian-Bank-Statements/train/India_Bank_Statement_Digital_Type1/00001.pdf"
+    @patch("fin4you.data.statement_parser.pypdf.PdfReader")
+    def test_parse_digital_statement_type1(self, mock_pdf_reader):
+        pdf_path = __file__
         self.assertTrue(os.path.exists(pdf_path), "Sample statement PDF must exist")
+        
+        mock_page = MagicMock()
+        text_lines = ["Progressive National Bank", "Account Number", "1234567890", "IFSC Code", "PNB0001234", "Opening Balance", "1000.00"]
+        for i in range(105):
+            text_lines.extend(["15-08-2023", f"Grocery Store {i}", "Rs. 50.00", f"Rs. {1000 - (i+1)*50}.00"])
+        mock_page.extract_text.return_value = "\n".join(text_lines)
+        mock_pdf_reader.return_value.pages = [mock_page]
+        
         res = self.parser.parse_digital_statement(pdf_path)
         self.assertEqual(res["format"], "Type 1")
         self.assertEqual(res["metadata"]["bank_name"], "Progressive National Bank")
@@ -31,9 +41,18 @@ class TestStatementParser(unittest.TestCase):
         self.assertIn("category", sample_tx)
         self.assertIn("ml_confidence", sample_tx)
 
-    def test_parse_digital_statement_type2(self):
-        pdf_path = "Indian-Bank-Statements/train/India_Bank_Statement_Digital_Type2/00001.pdf"
+    @patch("fin4you.data.statement_parser.pypdf.PdfReader")
+    def test_parse_digital_statement_type2(self, mock_pdf_reader):
+        pdf_path = __file__
         self.assertTrue(os.path.exists(pdf_path), "Sample statement PDF must exist")
+        
+        mock_page = MagicMock()
+        text_lines = ["CR/DR", "Opening Balance", "2000.00"]
+        for i in range(105):
+            text_lines.extend([f"S{1000000 + i}", "16-08-2023", f"Payment {i}", "DR", "100.00", f"{2000 - (i+1)*100}.00"])
+        mock_page.extract_text.return_value = "\n".join(text_lines)
+        mock_pdf_reader.return_value.pages = [mock_page]
+        
         res = self.parser.parse_digital_statement(pdf_path)
         self.assertEqual(res["format"], "Type 2")
         self.assertGreater(res["transaction_count"], 100)
