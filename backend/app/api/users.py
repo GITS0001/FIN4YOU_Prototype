@@ -158,14 +158,92 @@ def update_user_profile(updated_profile: dict, current_user: User = Depends(get_
     return read_user_profile(current_user=current_user, db=db)
 
 
+class CreateTransactionRequest(BaseModel):
+    description: str
+    amount: float
+    category: Optional[str] = "General"
+    direction: Optional[str] = "debit"
+    event_type: Optional[str] = "expense"
+    event_date: Optional[str] = None
+    currency: Optional[str] = "INR"
+    flexibility: Optional[str] = "variable"
+
+
 @router.get("/transactions", response_model=List[Transaction])
 def read_user_transactions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    limit: int = 50
+    limit: int = 100
 ):
     transactions = get_user_transactions(db, current_user.id)
     return transactions[:limit]
+
+
+@router.post("/transactions", response_model=Transaction)
+def create_user_transaction(
+    tx_data: CreateTransactionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    import uuid
+    from datetime import datetime as dt_cls
+    tx_id = f"tx_{uuid.uuid4().hex[:12]}"
+    ev_date_str = tx_data.event_date or date.today().isoformat()
+    try:
+        ev_date = dt_cls.strptime(ev_date_str[:10], "%Y-%m-%d").date()
+    except Exception:
+        ev_date = date.today()
+
+    new_tx = DBTransaction(
+        transaction_id=tx_id,
+        user_id=str(current_user.id),
+        event_type=tx_data.event_type or ("income" if tx_data.direction == "credit" else "expense"),
+        description=tx_data.description,
+        category=tx_data.category or "General",
+        direction=tx_data.direction or "debit",
+        amount=abs(float(tx_data.amount)),
+        currency=tx_data.currency or "INR",
+        event_date=ev_date_str,
+        settlement_date=ev_date_str,
+        status="SETTLED",
+        flexibility=tx_data.flexibility or "variable"
+    )
+    if db:
+        db.add(new_tx)
+        db.commit()
+
+    return Transaction(
+        transaction_id=tx_id,
+        user_id=str(current_user.id),
+        event_type=new_tx.event_type,
+        description=new_tx.description,
+        category=new_tx.category,
+        direction=new_tx.direction,
+        amount=new_tx.amount,
+        currency=new_tx.currency,
+        event_date=ev_date,
+        settlement_date=ev_date,
+        status=new_tx.status,
+        flexibility=new_tx.flexibility
+    )
+
+
+@router.delete("/transactions/{transaction_id}")
+def delete_user_transaction(
+    transaction_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if db:
+        tx = db.query(DBTransaction).filter(
+            DBTransaction.transaction_id == transaction_id
+        ).first()
+        if tx:
+            db.delete(tx)
+            db.commit()
+            return {"status": "success", "deleted_id": transaction_id}
+    return {"status": "success", "deleted_id": transaction_id}
+
 
 
 @router.get("/state", response_model=FinancialState)

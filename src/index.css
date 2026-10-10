@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -7,35 +6,85 @@
   --color-blue-light: #EFF6FF;
   --color-blue-mid: #BFDBFE;
   --color-fin-black: #0B0F19;
-  --font-sans: 'Inter', sans-serif;
-  --radius-card: 12px;
-  --shadow-card: 0 4px 16px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.04);
-  --shadow-blue: 0 8px 32px rgba(37,99,235,.22);
+  --color-fin-slate: #0F172A;
+  --color-emerald-accent: #059669;
+  --color-emerald-light: #ECFDF5;
+  --color-teal-accent: #0D9488;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Outfit', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius-card: 16px;
+  --radius-pill: 9999px;
+  --shadow-card: 0 1px 3px rgba(11,15,25,0.06), 0 6px 16px rgba(11,15,25,0.04);
+  --shadow-card-hover: 0 10px 30px -5px rgba(37,99,235,0.12), 0 4px 12px rgba(11,15,25,0.05);
+  --shadow-blue: 0 8px 24px rgba(37,99,235,0.24);
+  --shadow-glow: 0 0 30px rgba(37,99,235,0.15);
 }
 
 @layer base {
-  *, *::before, *::after { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body { font-family: 'Inter', sans-serif; color: #0B0F19; background: #fff; overflow-x: hidden; }
-  a { text-decoration: none; color: inherit; }
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #0B0F19;
+    background-color: #F8FAFC;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
 }
 
 @layer utilities {
   .text-gradient {
-    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 60%, #0D9488 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  .shadow-blue { box-shadow: 0 8px 32px rgba(37,99,235,.22); }
-  .shadow-card { box-shadow: 0 4px 16px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.04); }
-  .shadow-lg-blue { box-shadow: 0 12px 40px rgba(37,99,235,.18); }
+  .text-gradient-emerald {
+    background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .shadow-card {
+    box-shadow: 0 1px 3px rgba(11,15,25,0.06), 0 6px 16px rgba(11,15,25,0.04);
+  }
+  .shadow-card-hover {
+    box-shadow: 0 10px 30px -5px rgba(37,99,235,0.12), 0 4px 12px rgba(11,15,25,0.05);
+  }
+  .shadow-blue {
+    box-shadow: 0 8px 24px rgba(37,99,235,0.22);
+  }
+  .shadow-emerald {
+    box-shadow: 0 8px 24px rgba(5,150,105,0.22);
+  }
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Hide scrollbar for tabs and horizontal carousels */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 /* Float animations for hero cards */
-@keyframes float-1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-@keyframes float-2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
-@keyframes float-3 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+@keyframes float-1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes float-2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes float-3 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
 .animate-float-1 { animation: float-1 4s ease-in-out infinite; }
 .animate-float-2 { animation: float-2 4.5s ease-in-out infinite; }
 .animate-float-3 { animation: float-3 5s ease-in-out infinite; }

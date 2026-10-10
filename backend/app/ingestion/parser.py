@@ -7,14 +7,28 @@ from app.ml.preprocessing import DataQualityPipeline
 
 class StatementParser:
     """
-    Parses generic CSV statements into the canonical Transaction schema,
-    applying the DataQualityPipeline in the process.
+    Parses generic CSV and PDF bank statements into the canonical Transaction schema,
+    applying Data Quality Pipelines and PDF table extraction.
     Uses deterministic deduplication fingerprinting so retried uploads
     do not create duplicate transactions.
     """
     def __init__(self, user_id: str):
         self.user_id = user_id
         self.pipeline = DataQualityPipeline()
+
+    def parse_file(self, file_content: bytes, filename: str) -> Tuple[List[Transaction], Dict[str, Any]]:
+        ext = filename.lower().split('.')[-1]
+        if ext == 'pdf':
+            return self.parse_pdf(file_content)
+        elif ext == 'csv':
+            return self.parse_csv(file_content)
+        else:
+            raise ValueError("Unsupported file type. Please upload a CSV or PDF file.")
+
+    def parse_pdf(self, file_content: bytes) -> Tuple[List[Transaction], Dict[str, Any]]:
+        from app.ingestion.pdf_parser import PDFStatementParser
+        pdf_parser = PDFStatementParser(user_id=self.user_id)
+        return pdf_parser.parse_pdf(file_content)
 
     def parse_csv(self, file_content: bytes) -> Tuple[List[Transaction], Dict[str, Any]]:
         from io import BytesIO

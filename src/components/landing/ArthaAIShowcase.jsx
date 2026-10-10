@@ -1,17 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { useState, useRef } from 'react';
+import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import {
   Sparkles,
   Bot,
   Send,
   ArrowRight,
-  TrendingUp,
   Shield,
-  HelpCircle,
   PieChart,
-  IndianRupee,
-  CheckCircle2,
   Lightbulb,
   MessageSquare,
   RefreshCw,
@@ -190,7 +186,7 @@ export default function ArthaAIShowcase() {
                       Co-Pilot
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 font-medium">Fin4You Conversational Assistant</p>
+                  <p className="text-xs text-gray-600 font-medium">Fin4You Conversational Assistant</p>
                 </div>
               </div>
 
@@ -209,7 +205,7 @@ export default function ArthaAIShowcase() {
                   </div>
                   <div>
                     <div className="text-xs font-bold text-gray-900">Natural-Language Inquiries</div>
-                    <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                    <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">
                       No jargon required. Ask "How do I split my ₹35,000 salary?" and get clear allocations.
                     </p>
                   </div>
@@ -221,7 +217,7 @@ export default function ArthaAIShowcase() {
                   </div>
                   <div>
                     <div className="text-xs font-bold text-gray-900">Expense & Leak Sensemaking</div>
-                    <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                    <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">
                       Understand where your money is draining without doing manual math or wrestling with formulas.
                     </p>
                   </div>
@@ -233,7 +229,7 @@ export default function ArthaAIShowcase() {
                   </div>
                   <div>
                     <div className="text-xs font-bold text-gray-900">Financial Concepts Made Simple</div>
-                    <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                    <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">
                       Accessible explanations of emergency funds, SIPs, inflation, needs vs wants, and debt snowballs.
                     </p>
                   </div>
@@ -245,7 +241,7 @@ export default function ArthaAIShowcase() {
                   </div>
                   <div>
                     <div className="text-xs font-bold text-gray-900">Conversational Follow-ups</div>
-                    <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                    <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">
                       Dig deeper without restarting. Adjust for rent increases, variable bonuses, or life changes.
                     </p>
                   </div>
@@ -269,8 +265,8 @@ export default function ArthaAIShowcase() {
                 </Link>
               </div>
 
-              <div className="mt-4 flex items-center gap-2 text-[11px] text-gray-400">
-                <Shield className="w-3.5 h-3.5 text-gray-400" />
+              <div className="mt-4 flex items-center gap-2 text-[11px] text-gray-600">
+                <Shield className="w-3.5 h-3.5 text-gray-600" />
                 <span>Conversational guidance tool • Clear educational insights</span>
               </div>
             </div>
@@ -291,18 +287,18 @@ export default function ArthaAIShowcase() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-sm">Artha AI Assistant</span>
-                      <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                      <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-blue-500/20 text-blue-200 border border-blue-400/30">
                         Demo Sandbox
                       </span>
                     </div>
-                    <span className="text-[11px] text-gray-400">Fin4You Intelligent Guidance System</span>
+                    <span className="text-[11px] text-gray-300">Fin4You Intelligent Guidance System</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleSelectPrompt(PRESET_CONVERSATIONS[0])}
-                    className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1 transition-colors px-2 py-1 rounded-md hover:bg-white/10"
+                    className="text-[11px] text-gray-300 hover:text-white flex items-center gap-1 transition-colors px-2 py-1 rounded-md hover:bg-white/10"
                     title="Reset chat"
                   >
                     <RefreshCw className="w-3 h-3" />
@@ -313,7 +309,7 @@ export default function ArthaAIShowcase() {
 
               {/* Suggested Prompt Chips Carousel */}
               <div className="bg-[#F8FAFC] border-b border-gray-100 p-3.5">
-                <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <div className="text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                   <Lightbulb className="w-3.5 h-3.5 text-[#2563EB]" />
                   Try Sample Questions (Click to Ask):
                 </div>
@@ -345,7 +341,7 @@ export default function ArthaAIShowcase() {
               >
                 {/* Welcome intro notice */}
                 <div className="text-center my-1">
-                  <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-gray-500 text-[10px] font-medium">
+                  <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-[10px] font-bold">
                     Today • Interactive AI Demo Experience
                   </span>
                 </div>
@@ -389,7 +385,7 @@ export default function ArthaAIShowcase() {
                             <span>{activeMessage.botResponse.headline}</span>
                             <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
                           </div>
-                          <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                          <p className="text-xs text-gray-700 mt-1 leading-relaxed">
                             {activeMessage.botResponse.summary}
                           </p>
                         </div>
@@ -400,7 +396,7 @@ export default function ArthaAIShowcase() {
                             <div key={idx} className="p-2.5 sm:px-3 flex items-center justify-between gap-3 text-xs">
                               <div className="min-w-0">
                                 <div className="font-bold text-gray-800">{row.category}</div>
-                                <div className="text-[11px] text-gray-500 truncate">{row.detail}</div>
+                                <div className="text-[11px] text-gray-600 truncate">{row.detail}</div>
                               </div>
                               <span className="font-mono font-bold text-[#2563EB] flex-shrink-0 text-right">
                                 {row.amount}
@@ -417,7 +413,7 @@ export default function ArthaAIShowcase() {
                         {/* Suggested Follow Up Button */}
                         {activeMessage.botResponse.suggestedFollowUp && (
                           <div className="pt-1 flex items-center gap-2">
-                            <span className="text-[10px] text-gray-400 font-semibold uppercase">Follow-up:</span>
+                            <span className="text-[10px] text-gray-700 font-bold uppercase">Follow-up:</span>
                             <button
                               onClick={() => {
                                 const match = PRESET_CONVERSATIONS.find((c) =>
@@ -444,6 +440,7 @@ export default function ArthaAIShowcase() {
                   <div className="relative flex-1">
                     <input
                       type="text"
+                      aria-label="Ask Artha AI a financial question"
                       value={customInput}
                       onChange={(e) => setCustomInput(e.target.value)}
                       placeholder="Ask Artha about budgets, savings, or spending (e.g. 'How to start saving?')..."
@@ -453,13 +450,13 @@ export default function ArthaAIShowcase() {
                   <button
                     type="submit"
                     disabled={!customInput.trim()}
-                    className="px-4 py-2.5 bg-[#2563EB] disabled:bg-gray-200 text-white disabled:text-gray-400 font-bold rounded-xl shadow-xs hover:bg-[#1D4ED8] transition-all flex items-center gap-1.5 text-xs sm:text-sm"
+                    className="px-4 py-2.5 bg-[#2563EB] disabled:bg-gray-200 text-white disabled:text-gray-500 font-bold rounded-xl shadow-xs hover:bg-[#1D4ED8] transition-all flex items-center gap-1.5 text-xs sm:text-sm"
                   >
                     <span>Send</span>
                     <Send className="w-3.5 h-3.5" />
                   </button>
                 </form>
-                <div className="flex items-center justify-between mt-2 px-1 text-[10px] text-gray-400">
+                <div className="flex items-center justify-between mt-2 px-1 text-[10px] text-gray-600">
                   <span>✦ Interactive demonstration • Connect real data inside Fin4You</span>
                   <span>* Educational finance co-pilot</span>
                 </div>

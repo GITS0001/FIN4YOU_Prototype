@@ -2,27 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import {
-  IndianRupee,
-  Wallet,
-  TrendingUp,
-  TrendingDown,
   HelpCircle,
-  CheckCircle2,
   ArrowRight,
   Sparkles,
   ShieldCheck,
-  PieChart,
-  BarChart3,
   CreditCard,
   ShoppingBag,
   Receipt,
-  Target,
   Play,
   Pause,
   AlertCircle,
-  Clock,
-  ArrowUpRight,
-  Zap,
+  CheckCircle2,
+  TrendingUp,
+  Target,
 } from 'lucide-react';
 
 // ─── Scene metadata ──────────────────────────────────────────
@@ -340,15 +332,15 @@ function SceneConfusion() {
             <AlertCircle className="w-3.5 h-3.5 text-red-600" />
             Unorganized Financial State
           </span>
-          <span className="text-xs text-gray-400 font-medium">* Illustrative scenario</span>
+          <span className="text-xs text-gray-600 font-medium">* Illustrative scenario</span>
         </div>
 
         {/* Chaotic Card 1: Jagged Volatility Expense Chart */}
         <div className="bg-white rounded-2xl p-4 md:p-5 border border-red-100 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <div className="text-xs font-bold text-gray-700">Monthly Cash Drain</div>
-              <div className="text-[11px] text-gray-400">Irregular transactions, zero category tracking</div>
+              <div className="text-xs font-bold text-gray-800">Monthly Cash Drain</div>
+              <div className="text-[11px] text-gray-600 font-medium">Irregular transactions, zero category tracking</div>
             </div>
             <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-md">-₹48,200</span>
           </div>
@@ -368,7 +360,7 @@ function SceneConfusion() {
               <circle cx="240" cy="45" r="4" fill="#DC2626" />
             </svg>
           </div>
-          <div className="flex justify-between text-[10px] text-gray-400 font-medium mt-1">
+          <div className="flex justify-between text-[10px] text-gray-600 font-medium mt-1">
             <span>Week 1</span>
             <span>Week 2 (Spike?)</span>
             <span>Week 3</span>
@@ -462,7 +454,7 @@ function SceneTransform() {
               </div>
               <div>
                 <div className="text-xs font-bold text-gray-900">Fin4You Smart Sync</div>
-                <div className="text-[10px] text-gray-400">Automated ledger grouping</div>
+                <div className="text-[10px] text-gray-600 font-medium">Automated ledger grouping</div>
               </div>
             </div>
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-[11px] text-blue-700 font-semibold">
@@ -479,9 +471,9 @@ function SceneTransform() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
             >
-              <div className="text-[10px] text-gray-500 font-medium">Income</div>
+              <div className="text-[10px] text-gray-600 font-medium">Income</div>
               <div className="text-xs md:text-sm font-black text-[#2563EB] mt-0.5">₹75,000</div>
-              <span className="text-[9px] text-green-600 font-bold">Salary</span>
+              <span className="text-[9px] text-emerald-700 font-bold">Salary</span>
             </motion.div>
 
             <motion.div
@@ -490,9 +482,9 @@ function SceneTransform() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
             >
-              <div className="text-[10px] text-gray-500 font-medium">Expenses</div>
+              <div className="text-[10px] text-gray-600 font-medium">Expenses</div>
               <div className="text-xs md:text-sm font-black text-gray-800 mt-0.5">₹42,200</div>
-              <span className="text-[9px] text-gray-400 font-medium">Categorized</span>
+              <span className="text-[9px] text-gray-600 font-medium">Categorized</span>
             </motion.div>
 
             <motion.div
@@ -569,7 +561,7 @@ function SceneTransform() {
             </div>
           </div>
 
-          <div className="text-right mt-2 text-[9px] text-gray-400 font-medium">* Illustrative data for demonstration</div>
+          <div className="text-right mt-2 text-[9px] text-gray-600 font-medium">* Illustrative data for demonstration</div>
         </motion.div>
       </div>
     </div>
@@ -592,12 +584,12 @@ function SceneClarity() {
           animate={{ scale: 1, opacity: 1, y: [0, -6, 0] }}
           transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <div className="w-7 h-7 rounded-xl bg-green-50 flex items-center justify-center text-green-600 font-bold">
+          <div className="w-7 h-7 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-800 font-bold">
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div>
             <div className="text-[11px] font-bold text-gray-900">Health Score: 94/100</div>
-            <div className="text-[10px] text-green-600 font-semibold">Tier: Excellent</div>
+            <div className="text-[10px] text-emerald-800 font-bold">Tier: Excellent</div>
           </div>
         </motion.div>
 
@@ -606,7 +598,7 @@ function SceneClarity() {
           animate={{ y: [0, 6, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
         >
-          <span className="w-2 h-2 rounded-full bg-green-500" />
+          <span className="w-2 h-2 rounded-full bg-emerald-600" />
           <span className="text-[11px] font-bold text-gray-800">+18.4% YoY Savings</span>
         </motion.div>
 
@@ -622,7 +614,7 @@ function SceneClarity() {
 
         {/* Big Check Badge on Character */}
         <motion.div
-          className="absolute bottom-6 right-12 w-10 h-10 bg-green-600 text-white rounded-full flex items-center justify-center font-bold shadow-lg shadow-green-600/30 border-2 border-white z-20"
+          className="absolute bottom-6 right-12 w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold shadow-lg shadow-emerald-600/30 border-2 border-white z-20"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 350, delay: 0.3 }}
@@ -643,23 +635,23 @@ function SceneClarity() {
             <div>
               <div className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
                 Financial Clarity Center
-                <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-bold border border-green-200">
+                <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-800 text-[10px] font-bold border border-green-200">
                   Optimal
                 </span>
               </div>
-              <div className="text-[10px] text-gray-400">All streams synced & projected</div>
+              <div className="text-[10px] text-gray-600 font-medium">All streams synced & projected</div>
             </div>
             <div className="text-right">
               <div className="text-xs font-black text-[#2563EB]">₹1,85,000</div>
-              <div className="text-[9px] text-gray-400 font-medium">Emergency Reserve</div>
+              <div className="text-[9px] text-gray-600 font-bold">Emergency Reserve</div>
             </div>
           </div>
 
           {/* Smooth Rising Growth Area Chart */}
           <div className="my-3.5 bg-[#F8FAFC] border border-gray-100 rounded-2xl p-3">
-            <div className="flex justify-between items-center text-[10px] text-gray-500 mb-2">
-              <span className="font-semibold text-gray-700">6-Month Wealth Trajectory</span>
-              <span className="text-green-600 font-bold flex items-center gap-0.5">
+            <div className="flex justify-between items-center text-[10px] text-gray-600 mb-2">
+              <span className="font-semibold text-gray-800">6-Month Wealth Trajectory</span>
+              <span className="text-emerald-800 font-bold flex items-center gap-0.5">
                 <TrendingUp className="w-3 h-3" /> Upward Growth
               </span>
             </div>
@@ -692,7 +684,7 @@ function SceneClarity() {
               </svg>
             </div>
 
-            <div className="flex justify-between text-[10px] text-gray-400 mt-1 font-medium">
+            <div className="flex justify-between text-[10px] text-gray-600 mt-1 font-medium">
               <span>May</span>
               <span>Jun</span>
               <span>Jul</span>
@@ -711,10 +703,10 @@ function SceneClarity() {
                 </div>
                 <div>
                   <div className="text-[11px] font-bold text-gray-800">Emergency Fund Target</div>
-                  <div className="text-[10px] text-gray-500">₹1,85,000 of ₹2,00,000</div>
+                  <div className="text-[10px] text-gray-600">₹1,85,000 of ₹2,00,000</div>
                 </div>
               </div>
-              <span className="text-xs font-black text-green-700 bg-green-50 px-2 py-0.5 rounded-md border border-green-200/60">
+              <span className="text-xs font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
                 92% Done
               </span>
             </div>
@@ -726,14 +718,14 @@ function SceneClarity() {
                 </div>
                 <div>
                   <div className="text-[11px] font-bold text-gray-800">Fixed Bills & SIP Payments</div>
-                  <div className="text-[10px] text-gray-500">Auto-budgeted with zero stress</div>
+                  <div className="text-[10px] text-gray-600">Auto-budgeted with zero stress</div>
                 </div>
               </div>
-              <span className="text-xs font-semibold text-gray-600">All Cleared ✓</span>
+              <span className="text-xs font-semibold text-gray-700">All Cleared ✓</span>
             </div>
           </div>
 
-          <div className="text-right mt-2.5 text-[9px] text-gray-400 font-medium">* Illustrative visualization only</div>
+          <div className="text-right mt-2.5 text-[9px] text-gray-600 font-medium">* Illustrative visualization only</div>
         </motion.div>
       </div>
     </div>
@@ -862,48 +854,52 @@ export default function CartoonAnimation() {
                   const isCurrent = sceneIndex === idx;
                   const isPast = sceneIndex > idx;
                   return (
-                    <div
+                    <button
                       key={s.id}
+                      type="button"
                       onClick={() => selectScene(idx)}
-                      className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden cursor-pointer relative transition-all"
-                      title={`Go to ${s.navTitle}`}
+                      className="flex-1 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-full group cursor-pointer"
+                      aria-label={`Go to stage ${idx + 1}: ${s.navTitle}`}
+                      aria-current={isCurrent ? 'step' : undefined}
                     >
-                      {isCurrent ? (
-                        <motion.div
-                          key={`progress-${idx}-${isPlaying}`}
-                          className="h-full bg-[#2563EB] rounded-full"
-                          initial={{ width: '0%' }}
-                          animate={{ width: '100%' }}
-                          transition={
-                            isPlaying && !prefersReduced
-                              ? { duration: SCENE_DURATION_MS / 1000, ease: 'linear' }
-                              : { duration: 0 }
-                          }
-                        />
-                      ) : (
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            isPast ? 'w-full bg-blue-300' : 'w-0'
-                          }`}
-                        />
-                      )}
-                    </div>
+                      <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden relative">
+                        {isCurrent ? (
+                          <motion.div
+                            key={`progress-${idx}-${isPlaying}`}
+                            className="h-full bg-[#2563EB] rounded-full"
+                            initial={{ width: '0%' }}
+                            animate={{ width: '100%' }}
+                            transition={
+                              isPlaying && !prefersReduced
+                                ? { duration: SCENE_DURATION_MS / 1000, ease: 'linear' }
+                                : { duration: 0 }
+                            }
+                          />
+                        ) : (
+                          <div
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              isPast ? 'w-full bg-blue-500' : 'w-0'
+                            }`}
+                          />
+                        )}
+                      </div>
+                    </button>
                   );
                 })}
               </div>
 
-              {/* Refined Navigation Controls & Step Indicators (No huge top tab bar!) */}
-              <div className="w-full flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500">
+              {/* Refined Navigation Controls & Step Indicators */}
+              <div className="w-full flex flex-wrap items-center justify-between gap-3 text-xs text-gray-600">
                 <div className="flex items-center gap-2">
                   <button
+                    type="button"
                     onClick={togglePlay}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-blue-300 bg-white text-gray-700 font-medium hover:text-[#2563EB] transition-colors shadow-xs"
-                    aria-label={isPlaying ? 'Pause animation' : 'Play animation'}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-blue-300 bg-white text-gray-700 font-medium hover:text-[#2563EB] transition-colors shadow-xs touch-target"
                   >
                     {isPlaying ? <Pause className="w-3.5 h-3.5 text-[#2563EB]" /> : <Play className="w-3.5 h-3.5 text-[#2563EB]" />}
                     <span>{isPlaying ? 'Pause Story' : 'Auto Play'}</span>
                   </button>
-                  <span className="text-[11px] text-gray-400 hidden sm:inline">• Click steps to explore</span>
+                  <span className="text-[11px] text-gray-600 font-medium hidden sm:inline">• Click steps to explore</span>
                 </div>
 
                 {/* Subtle Step Selector Pills */}
@@ -911,14 +907,15 @@ export default function CartoonAnimation() {
                   {SCENES.map((s, idx) => (
                     <button
                       key={s.id}
+                      type="button"
                       onClick={() => selectScene(idx)}
                       className={`px-3 py-1.5 rounded-xl font-bold text-[11px] sm:text-xs transition-all ${
                         sceneIndex === idx
                           ? 'bg-[#2563EB] text-white shadow-xs'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 border border-gray-200/60'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 border border-gray-300/60'
                       }`}
                     >
-                      <span className="opacity-70 mr-1">{s.stepNumber}</span>
+                      <span className={sceneIndex === idx ? 'text-white font-extrabold mr-1' : 'text-gray-700 mr-1'}>{s.stepNumber}</span>
                       {s.navTitle}
                     </button>
                   ))}
@@ -960,7 +957,7 @@ export default function CartoonAnimation() {
             </a>
           </div>
 
-          <p className="text-[11px] text-gray-400 mt-4">
+          <p className="text-[11px] text-gray-600 mt-4">
             Instant setup • No credit card required • Free personal tier
           </p>
         </div>

@@ -60,22 +60,20 @@ class Transaction(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     transaction_id = Column(String, index=True, unique=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(String, index=True)
     event_type = Column(String)
     description = Column(String)
     category = Column(String)
     direction = Column(String)
     amount = Column(Float)
     currency = Column(String)
-    event_date = Column(Date)
-    settlement_date = Column(Date, nullable=True)
+    event_date = Column(String)
+    settlement_date = Column(String, nullable=True)
     status = Column(String)
     flexibility = Column(String)
     ml_confidence = Column(Float, nullable=True)
     ml_status = Column(String, nullable=True)
     ml_confidence_level = Column(String, nullable=True)
-
-    owner = relationship("User")
 
 class CopilotRequest(Base):
     __tablename__ = "copilot_requests"

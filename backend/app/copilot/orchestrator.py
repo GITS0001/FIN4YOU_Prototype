@@ -56,7 +56,16 @@ class CopilotOrchestrator:
         state = FinancialStateEngine(profile.user_id).calculate_state(user_events)
         pred = PredictionEngine().run_prediction(user_events, profile)
 
-        if not pred.available and parsed.intent not in [IntentType.FINANCIAL_SUMMARY, IntentType.SPENDING_ANALYSIS]:
+        REQUIRES_PREDICTION = [
+            IntentType.AFFORDABILITY_CHECK,
+            IntentType.PAYMENT_OPTION_ANALYSIS,
+            IntentType.WHAT_IF,
+            IntentType.RECOMMENDATION,
+            IntentType.CASH_FLOW_FORECAST,
+            IntentType.FINANCIAL_FORECAST,
+        ]
+
+        if not pred.available and parsed.intent in REQUIRES_PREDICTION:
             resp_text = self.generator.generate(parsed, {"status": "INSUFFICIENT_DATA"}, currency)
             return CopilotResponse(
                 intent=parsed.intent,
@@ -309,7 +318,7 @@ class CopilotOrchestrator:
                 ActionLink(label="View Forecast", url="/forecast")
             ]
 
-        elif parsed.intent == IntentType.CASH_FLOW_FORECAST:
+        elif parsed.intent in [IntentType.CASH_FLOW_FORECAST, IntentType.FINANCIAL_FORECAST]:
             if pred.projected_cash_flow:
                 sim = WhatIfSimulator(profile, pred)
                 baseline = sim.baseline_scenario()
@@ -371,7 +380,92 @@ class CopilotOrchestrator:
                 ActionLink(label="Detailed Insights", url="/insights")
             ]
 
+        elif parsed.intent == IntentType.GREETING:
+            structured_res = {"type": "greeting"}
+
+        elif parsed.intent == IntentType.SAVING_PLAN:
+            structured_res = {
+                "type": "saving_plan",
+                "income": state.income,
+                "expenses": state.expenses,
+                "savings": state.savings,
+                "currency": currency,
+            }
+            action_links = [
+                ActionLink(label="View Insights", url="/insights"),
+                ActionLink(label="What-If Simulator", url="/what-if"),
+            ]
+
+        elif parsed.intent == IntentType.BUDGETING:
+            structured_res = {
+                "type": "budgeting",
+                "income": state.income,
+                "expenses": state.expenses,
+                "currency": currency,
+            }
+            action_links = [
+                ActionLink(label="View Dashboard", url="/dashboard")
+            ]
+
+        elif parsed.intent == IntentType.BALANCE_QUERY:
+            structured_res = {
+                "type": "balance_query",
+                "balance": profile.current_available_balance,
+                "minimum_buffer": profile.minimum_balance_to_keep,
+                "currency": currency,
+            }
+
+        elif parsed.intent == IntentType.CASH_FLOW_QUERY:
+            structured_res = {
+                "type": "cash_flow_query",
+                "cash_flow": state.cash_flow,
+                "income": state.income,
+                "expenses": state.expenses,
+                "currency": currency,
+            }
+
+        elif parsed.intent == IntentType.INCOME_QUERY:
+            structured_res = {
+                "type": "income_query",
+                "income": state.income,
+                "currency": currency,
+            }
+
+        elif parsed.intent == IntentType.EXPENSE_QUERY:
+            structured_res = {
+                "type": "expense_query",
+                "expenses": state.expenses,
+                "essential_expenses": state.essential_expenses,
+                "discretionary_expenses": state.discretionary_expenses,
+                "currency": currency,
+            }
+
+        elif parsed.intent in [IntentType.GENERAL_FINANCE, IntentType.GENERAL_CONVERSATION, IntentType.CLARIFICATION]:
+            structured_res = {"type": "general_query", "currency": currency}
+
         resp_text = self.generator.generate(parsed, structured_res, currency)
+
+        # Enhance response via Groq LLM engine if active
+        try:
+            from app.copilot.groq_service import groq_llm_service
+            if groq_llm_service.is_available():
+                if parsed.intent == IntentType.GREETING:
+                    financial_context = {}
+                else:
+                    financial_context = {
+                        "balance": profile.current_available_balance,
+                        "buffer": profile.minimum_balance_to_keep,
+                        "currency": currency,
+                        "structured_result": structured_res,
+                    }
+                resp_text = groq_llm_service.generate_explanation(
+                    user_query=request.message,
+                    intent_name=str(parsed.intent),
+                    rule_response=resp_text,
+                    financial_context=financial_context,
+                )
+        except Exception:
+            pass
 
         return CopilotResponse(
             intent=parsed.intent,
@@ -380,6 +474,6 @@ class CopilotOrchestrator:
             structured_result=structured_res,
             confidence="HIGH" if pred.available else "MEDIUM",
             status=status,
-            data_sources=["financial_profiles", "financial_events", "PredictionEngine", "DecisionEngine"],
+            data_sources=["financial_profiles", "financial_events", "PredictionEngine", "DecisionEngine", "GroqLLaMA3"],
             action_links=action_links
         )

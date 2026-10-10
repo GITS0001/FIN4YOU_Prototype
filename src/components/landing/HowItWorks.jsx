@@ -16,18 +16,18 @@ const steps = [
         <div className="text-3xl text-center mb-4">👤</div>
         <div className="space-y-3">
           <div>
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Email</div>
+            <div className="text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Email</div>
             <div className="h-8 bg-gray-100 rounded-lg border border-gray-200" />
           </div>
           <div>
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Password</div>
+            <div className="text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-1">Password</div>
             <div className="h-8 bg-gray-100 rounded-lg border border-gray-200" />
           </div>
           <div className="bg-[#2563EB] text-white text-center py-2 rounded-lg text-xs font-bold mt-2">
             Create Account →
           </div>
         </div>
-        <div className="mt-3 inline-flex items-center gap-1.5 bg-green-50 text-green-600 text-[10px] font-bold px-2.5 py-1 rounded-full">
+        <div className="mt-3 inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-200/60">
           <span>✓</span> Account Created!
         </div>
       </div>
@@ -43,13 +43,13 @@ const steps = [
     visual: (
       <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-4 w-full max-w-[240px]">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold text-gray-700">Overview</span>
-          <span className="text-[10px] text-green-600 font-semibold">● Live</span>
+          <span className="text-xs font-bold text-gray-800">Overview</span>
+          <span className="text-[10px] text-emerald-700 font-bold">● Live</span>
         </div>
         <div className="grid grid-cols-3 gap-2 mb-3">
-          {[['Income','₹45K','text-[#2563EB]'],['Spent','₹28K','text-gray-700'],['Saved','₹17K','text-green-600']].map(([l,v,c])=>(
+          {[['Income','₹45K','text-[#2563EB]'],['Spent','₹28K','text-gray-800'],['Saved','₹17K','text-emerald-700']].map(([l,v,c])=>(
             <div key={l} className="text-center">
-              <div className="text-[9px] text-gray-400 uppercase tracking-wide">{l}</div>
+              <div className="text-[9px] text-gray-600 font-bold uppercase tracking-wide">{l}</div>
               <div className={`text-sm font-black ${c}`}>{v}</div>
             </div>
           ))}
@@ -71,17 +71,17 @@ const steps = [
     ctaTo: '/signup',
     visual: (
       <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-4 w-full max-w-[240px]">
-        <div className="text-xs font-bold text-gray-700 mb-3">Spending by Category</div>
+        <div className="text-xs font-bold text-gray-800 mb-3">Spending by Category</div>
         <div className="space-y-2.5">
-          {[['Food & Dining',64,'#2563EB','₹3,240'],['Transport',38,'#1D4ED8','₹1,920'],['Shopping',28,'#3B82F6','₹1,400'],['Utilities',18,'#BFDBFE','₹900']].map(([l,w,c,v])=>(
+          {[['Food & Dining',64,'#2563EB','₹3,240'],['Transport',38,'#1D4ED8','₹1,920'],['Shopping',28,'#3B82F6','₹1,400'],['Utilities',18,'#60A5FA','₹900']].map(([l,w,c,v])=>(
             <div key={l} className="grid grid-cols-[1fr_auto] items-center gap-2">
               <div>
-                <div className="text-[10px] text-gray-600 mb-1">{l}</div>
+                <div className="text-[10px] text-gray-700 font-medium mb-1">{l}</div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{width:`${w}%`,background:c}} />
                 </div>
               </div>
-              <div className="text-[10px] font-bold text-gray-700">{v}</div>
+              <div className="text-[10px] font-bold text-gray-800">{v}</div>
             </div>
           ))}
         </div>
@@ -97,16 +97,16 @@ const steps = [
     ctaTo: '/signup',
     visual: (
       <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-4 w-full max-w-[240px]">
-        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Projected Savings</div>
+        <div className="text-[10px] font-bold text-gray-700 uppercase tracking-wider mb-2">Projected Savings</div>
         <svg className="w-full mb-3" viewBox="0 0 200 80" fill="none">
           <path d="M5 72 C40 64,50 60,80 48 S120 40,148 28 S180 18,195 6" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round"/>
           <circle cx="195" cy="6" r="4" fill="#2563EB"/>
           <path d="M5 80V72 C40 64,50 60,80 48 S120 40,148 28 S180 18,195 6 V80Z" fill="#2563EB" opacity="0.07"/>
         </svg>
         <div className="text-center">
-          <div className="text-[10px] text-gray-400 uppercase tracking-wide">By year end</div>
+          <div className="text-[10px] text-gray-600 font-bold uppercase tracking-wide">By year end</div>
           <div className="text-2xl font-black text-[#2563EB]">₹1.2L</div>
-          <div className="text-[10px] text-gray-400">at current pace</div>
+          <div className="text-[10px] text-gray-600 font-medium">at current pace</div>
         </div>
       </div>
     ),
@@ -137,7 +137,7 @@ export default function HowItWorks() {
           <h2 className="text-3xl md:text-4xl font-black tracking-tight text-[#0B0F19] leading-tight mb-4">
             Four Simple Steps to<br /><em className="not-italic text-[#2563EB]">Financial Clarity.</em>
           </h2>
-          <p className="text-gray-500 text-[1.02rem] leading-relaxed">
+          <p className="text-gray-600 text-[1.02rem] leading-relaxed">
             Getting started with Fin4You is straightforward. Here's how your journey unfolds.
           </p>
         </motion.div>
@@ -158,14 +158,14 @@ export default function HowItWorks() {
                 <button
                   key={i}
                   onClick={() => setActive(i)}
-                  className="flex flex-col items-center gap-2 group"
+                  className="flex flex-col items-center gap-2 group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-xl p-1"
                 >
                   <div className={`w-10 h-10 rounded-full border-2 grid place-items-center font-bold text-sm transition-all duration-300 ${
-                    i <= active ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-blue' : 'bg-white border-gray-200 text-gray-400 group-hover:border-[#2563EB] group-hover:text-[#2563EB]'
+                    i <= active ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-blue' : 'bg-white border-gray-300 text-gray-600 group-hover:border-[#2563EB] group-hover:text-[#2563EB]'
                   }`}>
                     {i < active ? '✓' : i + 1}
                   </div>
-                  <span className={`text-xs font-semibold transition-colors ${i === active ? 'text-[#2563EB]' : 'text-gray-400'}`}>
+                  <span className={`text-xs font-semibold transition-colors ${i === active ? 'text-[#2563EB]' : 'text-gray-600'}`}>
                     {s.title.split(' ').slice(0, 2).join(' ')}
                   </span>
                 </button>
@@ -182,15 +182,15 @@ export default function HowItWorks() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -16 }}
             transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center bg-[#EFF6FF] rounded-3xl p-8 md:p-12"
+            className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-center bg-[#EFF6FF] rounded-2xl sm:rounded-3xl p-5 sm:p-8 md:p-12 border border-blue-100"
           >
             <div>
-              <div className="text-6xl font-black text-[#BFDBFE] leading-none mb-4">{steps[active].num}</div>
-              <h3 className="text-2xl md:text-3xl font-black text-[#0B0F19] tracking-tight mb-4">{steps[active].title}</h3>
-              <p className="text-gray-600 leading-relaxed mb-6 text-[0.97rem]">{steps[active].desc}</p>
+              <div className="text-5xl sm:text-6xl font-black text-[#1D4ED8] leading-none mb-3">{steps[active].num}</div>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-[#0B0F19] tracking-tight mb-3 font-display">{steps[active].title}</h3>
+              <p className="text-gray-700 leading-relaxed mb-6 text-sm sm:text-[0.97rem]">{steps[active].desc}</p>
               <Link
                 to={steps[active].ctaTo}
-                className="inline-flex items-center gap-2 px-5 py-3 bg-[#2563EB] text-white font-bold rounded-xl text-sm hover:bg-[#1D4ED8] transition-colors shadow-blue"
+                className="inline-flex items-center gap-2 px-5 py-3.5 bg-[#2563EB] text-white font-bold rounded-xl text-sm hover:bg-[#1D4ED8] transition-colors shadow-blue touch-target"
               >
                 {steps[active].cta} →
               </Link>
@@ -202,37 +202,42 @@ export default function HowItWorks() {
         </AnimatePresence>
 
         {/* Controls */}
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100 gap-2">
           <button
             onClick={() => go(active - 1)}
             disabled={active === 0}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            aria-label="Previous step"
+            className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-xl border border-gray-200 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors touch-target"
           >
-            <ChevronLeft size={16} /> Previous
+            <ChevronLeft size={16} /> <span>Previous</span>
           </button>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1">
             {steps.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setActive(i)}
-                className={`rounded-full transition-all duration-300 ${i === active ? 'w-6 h-2 bg-[#2563EB]' : 'w-2 h-2 bg-gray-200 hover:bg-gray-300'}`}
+                className="w-8 h-8 flex items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer"
                 aria-label={`Step ${i + 1}`}
-              />
+                aria-current={i === active ? 'step' : undefined}
+              >
+                <span className={`block rounded-full transition-all duration-300 ${i === active ? 'w-6 h-2.5 bg-[#2563EB]' : 'w-2.5 h-2.5 bg-gray-300 hover:bg-gray-400'}`} />
+              </button>
             ))}
           </div>
           {active === steps.length - 1 ? (
             <Link
               to="/signup"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] transition-colors"
+              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-xl bg-[#2563EB] text-white text-xs sm:text-sm font-semibold hover:bg-[#1D4ED8] transition-colors shadow-blue touch-target"
             >
               Get Started →
             </Link>
           ) : (
             <button
               onClick={() => go(active + 1)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#2563EB] text-white text-sm font-semibold hover:bg-[#1D4ED8] transition-colors"
+              aria-label="Next step"
+              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-xl bg-[#2563EB] text-white text-xs sm:text-sm font-semibold hover:bg-[#1D4ED8] transition-colors shadow-blue touch-target"
             >
-              Next <ChevronRight size={16} />
+              <span>Next</span> <ChevronRight size={16} />
             </button>
           )}
         </div>

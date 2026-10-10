@@ -1,23 +1,116 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { LogOut, TrendingUp, PieChart, Wallet, BarChart3 } from 'lucide-react';
+import DashboardHeader from '../components/dashboard/DashboardHeader';
+import MobileBottomNav from '../components/dashboard/MobileBottomNav';
+import OverviewTab from '../components/dashboard/OverviewTab';
+import ExpensesTab from '../components/dashboard/ExpensesTab';
+import ForecastTab from '../components/dashboard/ForecastTab';
+import InsightsTab from '../components/dashboard/InsightsTab';
+import WhatIfTab from '../components/dashboard/WhatIfTab';
+import CopilotTab from '../components/dashboard/CopilotTab';
+import ProfileTab from '../components/dashboard/ProfileTab';
+import { getUserProfile, getFinancialState, getAlerts } from '../api/fin4youApi';
 
 export default function Dashboard() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
   const navigate = useNavigate();
+
+  // Financial profile & state calibrated with FIN4YOU backend
+  const [profile, setProfile] = useState({
+    userId: 'user_01',
+    currency: 'INR',
+    currencySymbol: '₹',
+    balance: 58480,
+    buffer: 18000,
+    income: 75000,
+    expenses: 42200,
+    full_name: '',
+    email: '',
+  });
+  const [financialState, setFinancialState] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+
+  // Load live data from backend
+  const fetchBackendData = useCallback(async () => {
+    try {
+      setApiError(null);
+      const [profileData, stateData, alertsData] = await Promise.allSettled([
+        getUserProfile(),
+        getFinancialState(),
+        getAlerts(),
+      ]);
+
+      if (profileData.status === 'fulfilled' && profileData.value) {
+        const p = profileData.value;
+        const symbol = p.home_currency === 'USD' ? '$' : p.home_currency === 'EUR' ? '€' : p.home_currency === 'ZAR' ? 'R' : '₹';
+        setProfile((prev) => ({
+          ...prev,
+          userId: p.user_id || prev.userId,
+          currency: p.home_currency || 'INR',
+          currencySymbol: symbol,
+          balance: p.current_available_balance ?? prev.balance,
+          buffer: p.minimum_balance_to_keep ?? prev.buffer,
+          full_name: p.full_name || '',
+          email: p.email || '',
+        }));
+      }
+
+      if (stateData.status === 'fulfilled' && stateData.value) {
+        setFinancialState(stateData.value);
+        if (stateData.value.total_observed_income) {
+          setProfile((prev) => ({
+            ...prev,
+            income: stateData.value.total_observed_income || prev.income,
+            expenses: stateData.value.total_observed_expenses || prev.expenses,
+            balance: stateData.value.available_balance ?? prev.balance,
+            buffer: stateData.value.minimum_reserve ?? prev.buffer,
+          }));
+        }
+      }
+
+      if (alertsData.status === 'fulfilled' && Array.isArray(alertsData.value)) {
+        setAlerts(alertsData.value);
+      }
+    } catch (err) {
+      console.warn('Backend live sync warning:', err);
+      setApiError(err.message || 'Connecting in fallback mode');
+    }
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) { navigate('/login', { replace: true }); } else { setSession(session); setLoading(false); }
+      if (!session) {
+        navigate('/login', { replace: true });
+      } else {
+        setSession(session);
+        setLoading(false);
+        fetchBackendData();
+      }
     });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, s) => {
-      if (!s) navigate('/login', { replace: true });
-      else setSession(s);
+      if (!s) {
+        navigate('/login', { replace: true });
+      } else {
+        setSession(s);
+        setLoading(false);
+        fetchBackendData();
+      }
     });
+
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, fetchBackendData]);
+
+  const handleSelectTab = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams(tabId === 'overview' ? {} : { tab: tabId });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -26,72 +119,98 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-gray-200 border-t-[#2563EB] rounded-full animate-spin" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-3 border-gray-200 border-t-[#2563EB] rounded-full animate-spin" />
+          <span className="text-xs font-semibold text-gray-500">Loading your verified financial overview…</span>
+        </div>
       </div>
     );
   }
 
-  const email = session?.user?.email || '';
-  const username = session?.user?.user_metadata?.username || session?.user?.user_metadata?.full_name || email.split('@')[0];
-
-  const cards = [
-    { icon: Wallet, label: 'Total Income', value: '₹45,000', note: 'Sample data', color: 'text-[#2563EB]' },
-    { icon: BarChart3, label: 'Total Expenses', value: '₹28,400', note: 'Sample data', color: 'text-gray-700' },
-    { icon: TrendingUp, label: 'Net Savings', value: '₹16,600', note: 'Sample data', color: 'text-green-600' },
-    { icon: PieChart, label: 'Savings Rate', value: '36.9%', note: 'Sample data', color: 'text-[#2563EB]' },
-  ];
+  const email = profile.email || session?.user?.email || 'user@fin4you.com';
+  const username =
+    profile.full_name ||
+    session?.user?.user_metadata?.full_name ||
+    session?.user?.user_metadata?.username ||
+    email.split('@')[0];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Nav */}
-      <header className="bg-[#0B0F19] text-white px-6 md:px-10 h-16 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-2.5 font-bold text-base">
-          <span className="w-8 h-8 bg-[#2563EB] rounded-lg grid place-items-center text-sm font-black">F</span>
-          Fin4<strong className="text-[#93C5FD]">You</strong>
-        </div>
-        <div className="flex items-center gap-4">
-          <span id="user-email" className="text-xs text-[#93C5FD] font-mono hidden sm:block">{email}</span>
-          <button id="logout-btn" onClick={logout} className="flex items-center gap-1.5 px-3 py-1.5 border border-[#2563EB]/40 text-[#93C5FD] text-xs font-semibold rounded-lg hover:bg-[#2563EB]/10 transition-colors">
-            <LogOut size={14} /> Sign out
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
+      {/* Top Header with live status, branding, and desktop navigation rail */}
+      <DashboardHeader
+        email={email}
+        username={username}
+        onLogout={logout}
+        activeTab={activeTab}
+        onSelectTab={handleSelectTab}
+        unreadAlertsCount={alerts.filter(a => !a.is_read).length}
+      />
 
-      <main className="max-w-[1140px] mx-auto px-6 py-10">
-        {/* Greeting */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-black tracking-tight text-[#0B0F19]">
-            Hello, <em className="not-italic text-[#2563EB]">{username}</em> 👋
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">Here's your financial overview. Data shown below is illustrative.</p>
-        </div>
-
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {cards.map(({ icon: Icon, label, value, note, color }) => (
-            <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-card p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{label}</span>
-                <Icon size={16} className="text-gray-300" />
-              </div>
-              <div className={`text-2xl font-black tracking-tight ${color}`}>{value}</div>
-              <div className="text-[10px] text-gray-400 italic mt-1">{note}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Notice */}
-        <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-2xl p-6 flex gap-4 items-start">
-          <div className="text-2xl flex-shrink-0">📊</div>
-          <div>
-            <h3 className="text-sm font-bold text-[#0B0F19] mb-1">This is a demo dashboard</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              The figures shown above are sample data for illustration only. Full financial data entry, transaction tracking, and real summaries will be available here once connected to your financial records.
-            </p>
+      {/* Main Container */}
+      <main className="flex-1 max-w-[1360px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {apiError && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl flex items-center justify-between">
+            <span>Note: {apiError}. Demonstrating cached / offline interface state.</span>
+            <button onClick={fetchBackendData} className="font-bold underline ml-2">Retry API</button>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'overview' && (
+          <OverviewTab
+            profile={profile}
+            financialState={financialState}
+            onSelectTab={handleSelectTab}
+            onRefresh={fetchBackendData}
+          />
+        )}
+
+        {activeTab === 'expenses' && (
+          <ExpensesTab
+            profile={profile}
+            onRefreshState={fetchBackendData}
+          />
+        )}
+
+        {activeTab === 'forecast' && (
+          <ForecastTab
+            profile={profile}
+            financialState={financialState}
+          />
+        )}
+
+        {activeTab === 'insights' && (
+          <InsightsTab
+            profile={profile}
+            alerts={alerts}
+            onSelectTab={handleSelectTab}
+          />
+        )}
+
+        {activeTab === 'what-if' && (
+          <WhatIfTab profile={profile} />
+        )}
+
+        {activeTab === 'copilot' && (
+          <CopilotTab profile={profile} />
+        )}
+
+        {activeTab === 'profile' && (
+          <ProfileTab
+            profile={profile}
+            onUpdateProfile={(updated) => {
+              setProfile((prev) => ({ ...prev, ...updated }));
+              fetchBackendData();
+            }}
+            email={email}
+            username={username}
+          />
+        )}
       </main>
+
+      {/* Mobile App-Like Bottom Navigation */}
+      <MobileBottomNav activeTab={activeTab} onSelectTab={handleSelectTab} />
     </div>
   );
 }
+

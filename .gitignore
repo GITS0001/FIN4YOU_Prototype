@@ -243,6 +243,7 @@ backend/data/
 data/media/
 
 # Scratch, debugging, and ad-hoc scripts
+scratch/
 backend/debug_state.py
 backend/seed.py
 backend/test_endpoints.py

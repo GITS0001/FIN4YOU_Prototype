@@ -13,7 +13,7 @@ function LandingLayout({ children }) {
   return (
     <>
       <Header />
-      <main>{children}</main>
+      <main id="main-content" tabIndex="-1" className="focus:outline-none">{children}</main>
       <Footer />
     </>
   );
@@ -28,6 +28,7 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/dashboard/*" element={<Dashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>

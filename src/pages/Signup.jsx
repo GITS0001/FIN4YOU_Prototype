@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
 import { SignupForm } from '../components/auth/AuthForms';
 import AuthVideoPanel from '../components/auth/AuthVideoPanel';
+import { ShieldCheck } from 'lucide-react';
 
 export default function Signup() {
   return (
     <div className="min-h-screen lg:h-screen lg:overflow-hidden grid grid-cols-1 lg:grid-cols-2 bg-white">
       {/* Left 50% Video Panel */}
-      <div className="w-full h-[280px] sm:h-[340px] lg:h-full lg:max-h-screen">
+      <div className="w-full h-[190px] sm:h-[240px] lg:h-full lg:max-h-screen">
         <AuthVideoPanel
           badgeText="Financial Clarity Journey"
           heading="Start with clear financial direction."
@@ -15,15 +16,15 @@ export default function Signup() {
       </div>
 
       {/* Right 50% Signup Form Panel */}
-      <div className="w-full h-full flex flex-col justify-center items-center p-6 sm:p-10 lg:p-14 overflow-y-auto bg-white">
-        <div className="w-full max-w-[420px] my-auto">
+      <div className="w-full h-full flex flex-col justify-center items-center p-5 sm:p-8 lg:p-14 overflow-y-auto bg-white">
+        <div className="w-full max-w-[420px] my-auto py-4">
           {/* Mobile-only logo */}
-          <div className="lg:hidden mb-6 flex items-center justify-between">
+          <div className="lg:hidden mb-5 flex items-center justify-between">
             <Link to="/" className="inline-flex items-center gap-2 font-bold text-base text-[#0B0F19]">
               <span className="w-7 h-7 bg-[#2563EB] text-white rounded-lg grid place-items-center text-xs font-black">
                 F
               </span>
-              <span>
+              <span className="font-display">
                 Fin4<strong className="text-[#2563EB]">You</strong>
               </span>
             </Link>
@@ -31,11 +32,11 @@ export default function Signup() {
           </div>
 
           {/* Form Header */}
-          <div className="mb-6">
-            <span className="inline-block text-xs font-bold text-[#2563EB] uppercase tracking-wider mb-2">
+          <div className="mb-5 sm:mb-6">
+            <span className="inline-block text-xs font-bold text-[#2563EB] uppercase tracking-wider mb-1.5">
               Free Personal Account
             </span>
-            <h1 className="text-2xl sm:text-3xl font-black text-[#0B0F19] tracking-tight mb-2">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#0B0F19] tracking-tight mb-2 font-display">
               Create your account
             </h1>
             <p className="text-sm text-gray-500 leading-relaxed">
@@ -49,7 +50,10 @@ export default function Signup() {
           {/* Bottom Security Assurance */}
           <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
             <span>© 2026 Fin4You</span>
-            <span>Privacy & Terms Compliant</span>
+            <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+              <ShieldCheck size={13} />
+              Privacy Compliant
+            </span>
           </div>
         </div>
       </div>

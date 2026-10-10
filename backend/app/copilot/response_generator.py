@@ -181,7 +181,7 @@ class ResponseGenerator:
                 return f"**Recommendation:** {rec_text}{trace_text}"
             return "Your projected cash flow and buffer are within acceptable ranges. No critical action is required at this time."
 
-        elif parsed.intent == IntentType.CASH_FLOW_FORECAST:
+        elif parsed.intent in [IntentType.CASH_FLOW_FORECAST, IntentType.FINANCIAL_FORECAST]:
             pcf = result.get('projected_cash_flow', 0)
             bal = result.get('projected_balance', 0)
             pcf_str = _fmt(pcf, currency)
@@ -194,11 +194,60 @@ class ResponseGenerator:
                 f"See the Forecast page for the full income, expenses, and obligations breakdown."
             )
 
-        elif parsed.intent == IntentType.SPENDING_ANALYSIS:
+        elif parsed.intent == IntentType.GREETING:
+            return "Hey! Welcome to Fin4You. How can I help you manage your money today?"
+
+        elif parsed.intent == IntentType.SAVING_PLAN:
             return (
-                "Your spending has been analyzed across all categories. "
-                "Check the Insights page for a complete breakdown of essential vs discretionary expenses, "
-                "top spending categories, anomalous transactions, and spending trends."
+                "### 4-Week Actionable Savings Plan\n\n"
+                "Here is a structured blueprint to help you save money within one month:\n\n"
+                "**Week 1: Audit & Cut Subscriptions**\n"
+                "• Cancel unneeded subscriptions or streaming services.\n"
+                "• Review food delivery and dining out expenses.\n\n"
+                "**Week 2: Set Category Caps**\n"
+                "• Cap discretionary spending (entertainment, impulse buys) by 20–30%.\n"
+                "• Use cash or dedicated sub-accounts for daily spending.\n\n"
+                "**Week 3: Reduce Recurring Bills**\n"
+                "• Negotiate utility bills, internet plans, or insurance policies.\n"
+                "• Cook meals at home and meal-prep for the week.\n\n"
+                "**Week 4: Review & Automate Savings**\n"
+                "• Transfer all savings into a high-yield savings account or emergency buffer.\n"
+                "• Set up automatic payday transfers for future months."
             )
 
-        return "Here is your financial analysis. See the structured data below for details."
+        elif parsed.intent == IntentType.BUDGETING:
+            return (
+                "### 50/30/20 Budgeting Rule\n\n"
+                "• **50% Needs:** Essential bills (rent, utilities, groceries, transportation)\n"
+                "• **30% Wants:** Discretionary spending (dining out, entertainment, hobbies)\n"
+                "• **20% Savings:** Emergency buffer, debt paydown, or long-term investments\n\n"
+                "Adjust these percentages based on your current financial goals."
+            )
+
+        elif parsed.intent == IntentType.BALANCE_QUERY:
+            bal = _fmt(result.get("balance", 0), currency)
+            buf = _fmt(result.get("minimum_buffer", 0), currency)
+            return f"Your current available balance is **{bal}** (minimum safety buffer: {buf})."
+
+        elif parsed.intent == IntentType.CASH_FLOW_QUERY:
+            cf = _fmt(result.get("cash_flow", 0), currency)
+            direction = "positive" if result.get("cash_flow", 0) >= 0 else "negative"
+            return f"Your current net cash flow is **{cf}** ({direction})."
+
+        elif parsed.intent == IntentType.INCOME_QUERY:
+            inc = _fmt(result.get("income", 0), currency)
+            return f"Your total monthly income is **{inc}**."
+
+        elif parsed.intent == IntentType.EXPENSE_QUERY:
+            exp = _fmt(result.get("expenses", 0), currency)
+            ess = _fmt(result.get("essential_expenses", 0), currency)
+            disc = _fmt(result.get("discretionary_expenses", 0), currency)
+            return f"Your total monthly expenses are **{exp}** (Essential: {ess}, Discretionary: {disc})."
+
+        elif parsed.intent == IntentType.GENERAL_FINANCE:
+            return "Managing money effectively starts with tracking cash flow, maintaining a safety buffer, and setting clear monthly savings targets."
+
+        elif parsed.intent == IntentType.GENERAL_CONVERSATION or parsed.intent == IntentType.CLARIFICATION:
+            return "I am Artha AI, your Fin4You personal finance assistant. Ask me anything about your balance, cash flow, savings plans, or budgeting strategies!"
+
+        return "Here is your financial analysis. See the details below."
