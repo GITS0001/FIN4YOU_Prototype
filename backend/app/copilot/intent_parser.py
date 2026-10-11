@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 
 from app.schemas.copilot import ParsedIntent, IntentType
 from app.copilot.provider import BaseLLMProvider
+from app.financial.merchants import detect_merchant_info
 
 logger = logging.getLogger("fin4you.intent_parser")
 
@@ -24,17 +25,39 @@ class IntentParser:
         if not msg:
             return ParsedIntent(intent=IntentType.UNKNOWN)
 
+        # Always run deterministic extraction as baseline / scenario extractor
+        det_parsed = self._parse_deterministic(msg, conversation_history)
+
         # Stage 1: Try LLM extraction if provider is available
         if self.provider and self.provider.is_available() and not getattr(self.provider, "is_fallback", False):
             try:
                 llm_parsed = self._parse_with_llm(msg, conversation_history)
                 if llm_parsed and llm_parsed.intent != IntentType.UNKNOWN:
+                    # Merge deterministic scenario parameters if present
+                    if det_parsed.stated_balance is not None:
+                        llm_parsed.stated_balance = det_parsed.stated_balance
+                    if det_parsed.stated_income is not None:
+                        llm_parsed.stated_income = det_parsed.stated_income
+                    if det_parsed.stated_expenses is not None:
+                        llm_parsed.stated_expenses = det_parsed.stated_expenses
+                    if det_parsed.stated_buffer is not None:
+                        llm_parsed.stated_buffer = det_parsed.stated_buffer
+                    if det_parsed.is_annual:
+                        llm_parsed.is_annual = True
+                    if det_parsed.item_description and not llm_parsed.item_description:
+                        llm_parsed.item_description = det_parsed.item_description
+                    if det_parsed.amount is not None:
+                        llm_parsed.amount = det_parsed.amount
+                    if det_parsed.merchant and not llm_parsed.merchant:
+                        llm_parsed.merchant = det_parsed.merchant
+                    if det_parsed.category and not llm_parsed.category:
+                        llm_parsed.category = det_parsed.category
                     return llm_parsed
             except Exception as e:
                 logger.warning(f"LLM parsing failed ({e}); falling back to deterministic parser.")
 
         # Stage 2: Deterministic extraction
-        return self._parse_deterministic(msg, conversation_history)
+        return det_parsed
 
     def _parse_with_llm(self, message: str, history: Optional[List[Dict[str, str]]] = None) -> Optional[ParsedIntent]:
         system_prompt = (
@@ -43,7 +66,7 @@ class IntentParser:
             "- FINANCIAL_SUMMARY (overall balance, cash flow, high-level summary)\n"
             "- SPENDING_ANALYSIS (historical spending, category breakdown, food/dining costs)\n"
             "- CASH_FLOW_FORECAST (future income, expenses, cash flow projections)\n"
-            "- AFFORDABILITY_CHECK (evaluating if a user can afford a purchase, phone, car, item)\n"
+            "- AFFORDABILITY_CHECK (evaluating if a user can afford a purchase, phone, car, item, policy, mediclaim)\n"
             "- WHAT_IF (simulating spending changes, income drops/increases, unexpected expenses)\n"
             "- PLAN_EVALUATION (comparing financial action plans, strategies, reserve protection)\n"
             "- GOAL_FEASIBILITY (checking if a savings goal can be met within a deadline)\n"
@@ -51,10 +74,13 @@ class IntentParser:
             "- MISSING_DATA_CLARIFICATION (asking what information is needed to make advice reliable)\n"
             "- UNKNOWN (non-financial questions or unsupported queries)\n\n"
             "CRITICAL: For WHAT_IF, if the user wants to spend less/reduce spending, make `change_amount` a negative number. If they want to spend more, make it positive.\n"
+            "For scenarios with stated parameters (balance, income, expenses, buffer, annual premium), extract them explicitly.\n"
             "Return strictly valid JSON with keys: "
-            '{"intent": string, "amount": float|null, "category": string|null, "change_amount": float|null, '
+            '{"intent": string, "amount": float|null, "category": string|null, "merchant": string|null, "change_amount": float|null, '
             '"income_shock_percentage": float|null, "unexpected_expense": float|null, "horizon_months": int|null, '
-            '"target_goal_amount": float|null, "target_goal_months": int|null}'
+            '"target_goal_amount": float|null, "target_goal_months": int|null, '
+            '"stated_balance": float|null, "stated_income": float|null, "stated_expenses": float|null, '
+            '"stated_buffer": float|null, "is_annual": bool|null, "item_description": string|null}'
         )
 
         prompt = f"User query: \"{message}\"\nJSON:"
@@ -72,37 +98,99 @@ class IntentParser:
         raw_intent = data.get("intent", "").upper()
 
         if raw_intent in IntentType.__members__:
+            chg = data.get("change_amount")
+            shock = data.get("income_shock_percentage") or 0.0
+            if chg is not None and not any(w in message.lower() for w in ["salary", "income", "earn"]):
+                shock = 0.0
+
             return ParsedIntent(
                 intent=IntentType(raw_intent),
                 amount=data.get("amount"),
                 category=data.get("category"),
-                change_amount=data.get("change_amount"),
-                income_shock_percentage=data.get("income_shock_percentage") or 0.0,
+                merchant=data.get("merchant"),
+                change_amount=chg,
+                income_shock_percentage=shock,
                 unexpected_expense=data.get("unexpected_expense") or 0.0,
                 horizon_months=data.get("horizon_months"),
                 target_goal_amount=data.get("target_goal_amount"),
                 target_goal_months=data.get("target_goal_months"),
+                stated_balance=data.get("stated_balance"),
+                stated_income=data.get("stated_income"),
+                stated_expenses=data.get("stated_expenses"),
+                stated_buffer=data.get("stated_buffer"),
+                is_annual=data.get("is_annual") or False,
+                item_description=data.get("item_description"),
             )
         return None
 
     def _parse_deterministic(self, message: str, history: Optional[List[Dict[str, str]]] = None) -> ParsedIntent:
         msg = message.lower().strip()
+        merchant_info = detect_merchant_info(msg)
+
+        # ------------------------------------------------------------------
+        # Extract explicit key-value scenario inputs if provided by the user
+        # ------------------------------------------------------------------
+        def _extract_labelled_amount(patterns: List[str]) -> Optional[float]:
+            for pat in patterns:
+                m = re.search(pat, message, re.IGNORECASE)
+                if m:
+                    try:
+                        return float(m.group(1).replace(',', ''))
+                    except (ValueError, TypeError):
+                        pass
+            return None
+
+        stated_balance = _extract_labelled_amount([
+            r'(?:bank\s+balance|current\s+balance|available\s+balance|account\s+balance|balance)\s*[:=]?\s*[₹$€£R]?\s*([\d,]+(?:\.\d+)?)',
+        ])
+        stated_income = _extract_labelled_amount([
+            r'(?:monthly\s+income|monthly\s+salary|income|salary)\s*[:=]?\s*[₹$€£R]?\s*([\d,]+(?:\.\d+)?)',
+        ])
+        stated_expenses = _extract_labelled_amount([
+            r'(?:monthly\s+expenses|monthly\s+expense|monthly\s+spending|expenses|spending)\s*[:=]?\s*[₹$€£R]?\s*([\d,]+(?:\.\d+)?)',
+        ])
+        stated_buffer = _extract_labelled_amount([
+            r'(?:minimum\s+emergency\s+fund|emergency\s+fund|minimum\s+buffer|safety\s+buffer|emergency\s+reserve|buffer|reserve)\s*[:=]?\s*[₹$€£R]?\s*([\d,]+(?:\.\d+)?)',
+        ])
+        stated_premium = _extract_labelled_amount([
+            r'(?:annual\s+premium|yearly\s+premium|monthly\s+premium|premium|purchase\s+amount|purchase\s+price|price|cost|worth)\s*[:=]?\s*[₹$€£R]?\s*([\d,]+(?:\.\d+)?)',
+        ])
+
+        is_annual = bool(
+            re.search(r'\b(annual|yearly)\s+premium\b', msg)
+            or ("annual" in msg and any(w in msg for w in ["premium", "policy", "insurance", "mediclaim"]))
+        )
+
+        item_description = None
+        for item in ["mediclaim", "health insurance", "insurance", "policy", "iphone", "phone", "laptop", "car", "bike"]:
+            if item in msg:
+                item_description = item
+                break
 
         # ------------------------------------------------------------------
         # Extract numeric amounts (handle currency symbols ₹, $, €, commas)
         # ------------------------------------------------------------------
         amount: Optional[float] = None
-        amounts = re.findall(r'[\d,]+(?:\.\d+)?', msg)
-        if amounts:
-            for cand in amounts:
-                try:
-                    val = float(cand.replace(',', ''))
-                    # Exclude typical month counts like 6 in "6 months" unless it's a stand-alone amount
-                    if val > 0:
-                        amount = val
-                        break
-                except ValueError:
-                    pass
+        if stated_premium is not None:
+            amount = stated_premium
+        else:
+            amounts = re.findall(r'[\d,]+(?:\.\d+)?', msg)
+            if amounts:
+                stated_vals = {
+                    v for v in [stated_balance, stated_income, stated_expenses, stated_buffer]
+                    if v is not None
+                }
+                for cand in amounts:
+                    try:
+                        val = float(cand.replace(',', ''))
+                        if val > 0:
+                            # Avoid picking stated balance or income as the purchase amount if other numbers exist
+                            if stated_vals and val in stated_vals and len(amounts) > len(stated_vals):
+                                continue
+                            amount = val
+                            break
+                    except ValueError:
+                        pass
 
         # Percentage detection (e.g. 20% salary drop)
         pct_match = re.search(r'(\d+(?:\.\d+)?)\s*%', msg)
@@ -182,6 +270,8 @@ class IntentParser:
                 category = "shopping"
             elif "food" in msg or "groceries" in msg:
                 category = "food"
+            elif merchant_info:
+                category = merchant_info["category"]
 
             # Salary drop / income shock
             if "income" in msg or "salary" in msg or "earn" in msg:
@@ -228,26 +318,61 @@ class IntentParser:
         # e.g. "Can I afford a phone worth ₹60,000 next month?", "Can I afford to spend 1302.4 in installments?"
         # ------------------------------------------------------------------
         affordability_keywords = [
-            "afford", "buy", "purchase", "cost", "costing",
-            "pay upfront", "installments", "phone", "iphone", "laptop", "car"
+            "afford", "buy", "purchase",
+            "pay upfront", "installments", "phone", "iphone", "laptop", "car",
+            "mediclaim", "insurance", "policy", "premium", "emergency fund", "purchase scenario"
         ]
-        if any(kw in msg for kw in affordability_keywords) and "what if" not in msg and "reach" not in msg:
-            if "installment" in msg or "emi" in msg:
-                return ParsedIntent(intent=IntentType.AFFORDABILITY_CHECK, amount=amount)
-            return ParsedIntent(intent=IntentType.AFFORDABILITY_CHECK, amount=amount)
+        is_historical = any(w in msg for w in ["last month", "past month", "previous month", "spent", "spending", "how much did", "history"])
+        is_affordability = (
+            (
+                any(kw in msg for kw in affordability_keywords)
+                or (("cost" in msg or "costing" in msg) and (amount is not None or "can i" in msg or "afford" in msg))
+                or (stated_premium is not None and (stated_balance is not None or stated_income is not None))
+            )
+            and not is_historical
+        )
+        if is_affordability and "what if" not in msg and "reach" not in msg:
+            return ParsedIntent(
+                intent=IntentType.AFFORDABILITY_CHECK,
+                amount=amount,
+                stated_balance=stated_balance,
+                stated_income=stated_income,
+                stated_expenses=stated_expenses,
+                stated_buffer=stated_buffer,
+                is_annual=is_annual,
+                item_description=item_description,
+            )
 
         # ------------------------------------------------------------------
-        # Spending analysis
-        # e.g. "How much did I spend on food last month?", "where is most of my money going"
+        # Spending analysis & App / Merchant Breakdown
+        # e.g. "How much did I spend on food last month?", "where is most of my money going",
+        # "show category wise distribution", "Myntra shopping", "Swiggy food", "Uber travel"
         # ------------------------------------------------------------------
-        spending_keywords = ["how much did i spend", "where is most of my money going", "spending", "spend on", "expense on"]
-        if any(kw in msg for kw in spending_keywords):
+        spending_keywords = [
+            "how much did i spend", "where is most of my money going", "where is my money going",
+            "spending", "spend on", "expense on", "expenses", "expense", "spent",
+            "category wise", "category-wise", "distribution", "breakdown", "category distribution",
+            "categories", "merchants", "apps", "app-wise", "where does my money go", "where did my money go",
+            "payment from", "payments", "payment", "money going", "categorywise"
+        ]
+        is_spending = (
+            any(kw in msg for kw in spending_keywords)
+            or (merchant_info is not None and not is_affordability and not is_what_if)
+        )
+        if is_spending:
             cat = None
-            for c in ["food", "groceries", "eating out", "dining", "rent", "shopping", "travel", "entertainment", "transport"]:
+            for c in ["food", "groceries", "eating out", "dining", "rent", "shopping", "travel", "entertainment", "transport", "utilities", "healthcare", "investments"]:
                 if c in msg:
                     cat = c
                     break
-            return ParsedIntent(intent=IntentType.SPENDING_ANALYSIS, category=cat)
+
+            merchant_name = None
+            if merchant_info:
+                merchant_name = merchant_info["display_name"]
+                if not cat:
+                    cat = merchant_info["category"]
+
+            return ParsedIntent(intent=IntentType.SPENDING_ANALYSIS, category=cat, merchant=merchant_name)
 
         # ------------------------------------------------------------------
         # Recommendations & Explanations

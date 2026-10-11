@@ -41,28 +41,18 @@ class AffordabilityEngine:
         self,
         amount: float,
         payment_options: Optional[List[PaymentOption]] = None,
+        stated_balance: Optional[float] = None,
+        stated_income: Optional[float] = None,
+        stated_expenses: Optional[float] = None,
+        stated_buffer: Optional[float] = None,
+        is_annual: bool = False,
     ) -> AffordabilityResult:
         """
         Evaluate whether *amount* is affordable given the user's financial profile
-        and projected next-month cash flow.
-
-        Parameters
-        ----------
-        amount : float
-            Proposed one-off purchase price. Must be positive.
-        payment_options : list of PaymentOption, optional
-            Alternative installment/EMI plans to evaluate.
-
-        Returns
-        -------
-        AffordabilityResult
-            Deterministic result with status, computed balance, shortfall,
-            viable payment options, and auditable reasons.
+        (or explicit stated scenario parameters) and projected cash flow.
         """
-        # -----------------------------------------------------------------
-        # Guard: prediction data availability
-        # -----------------------------------------------------------------
-        if not self.baseline.available:
+        has_stated_scenario = any(v is not None for v in [stated_balance, stated_income, stated_expenses, stated_buffer])
+        if not self.baseline.available and not has_stated_scenario:
             return AffordabilityResult(
                 status="INSUFFICIENT DATA",
                 proposed_expense_amount=amount if amount else 0.0,
@@ -73,11 +63,6 @@ class AffordabilityEngine:
                     "Cannot project cash flow."
                 ],
             )
-
-        # -----------------------------------------------------------------
-        # Guard: validate proposed amount
-        # -----------------------------------------------------------------
-        reasons: List[str] = []
 
         if amount is None or amount <= 0:
             return AffordabilityResult(
@@ -91,77 +76,147 @@ class AffordabilityEngine:
         if payment_options is None:
             payment_options = []
 
-        baseline_cf = self.baseline.projected_cash_flow
+        baseline_cf = self.baseline.projected_cash_flow if (self.baseline.available and self.baseline.projected_cash_flow) else None
 
-        # -----------------------------------------------------------------
-        # Core one-off purchase calculation
-        # (modelled as a debit against current balance within this month's cf)
-        # -----------------------------------------------------------------
-        projected_net_cf = baseline_cf.projected_cash_flow  # income - expenses - obligations
-        resulting_balance = self.profile.current_available_balance + projected_net_cf - amount
-        shortfall = max(0.0, self.profile.minimum_balance_to_keep - resulting_balance)
+        data_sources: dict = {}
+        conflicts: List[str] = []
 
-        # Build auditable reason strings based on actual values used
-        reasons.append(
-            f"Current available balance: {self.profile.current_available_balance:.2f}"
-        )
-        reasons.append(
-            f"Projected net cash flow (income {baseline_cf.projected_income:.2f} "
-            f"- expenses {baseline_cf.projected_expenses:.2f} "
-            f"- obligations {baseline_cf.known_obligations:.2f}): "
-            f"{projected_net_cf:.2f}"
-        )
-        reasons.append(f"Proposed purchase amount: {amount:.2f}")
-        reasons.append(f"Resulting balance after purchase: {resulting_balance:.2f}")
-        reasons.append(f"Required minimum buffer: {self.profile.minimum_balance_to_keep:.2f}")
+        # 1. Resolve Active Balance
+        if stated_balance is not None:
+            active_balance = float(stated_balance)
+            data_sources["current_balance"] = "Stated Scenario Override"
+            if abs(active_balance - self.profile.current_available_balance) > 0.01:
+                conflicts.append(
+                    f"Stated bank balance ({active_balance:,.2f}) differs from profile on record ({self.profile.current_available_balance:,.2f})"
+                )
+        else:
+            active_balance = float(self.profile.current_available_balance)
+            data_sources["current_balance"] = "Profile on Record"
 
-        # -----------------------------------------------------------------
-        # Status determination
-        # -----------------------------------------------------------------
-        if resulting_balance >= self.profile.minimum_balance_to_keep:
+        # 2. Resolve Active Buffer / Emergency Fund
+        if stated_buffer is not None:
+            active_buffer = float(stated_buffer)
+            data_sources["minimum_buffer"] = "Stated Emergency Fund Target"
+            if abs(active_buffer - self.profile.minimum_balance_to_keep) > 0.01:
+                conflicts.append(
+                    f"Stated minimum emergency fund ({active_buffer:,.2f}) differs from profile reserve ({self.profile.minimum_balance_to_keep:,.2f})"
+                )
+        else:
+            active_buffer = float(self.profile.minimum_balance_to_keep)
+            data_sources["minimum_buffer"] = "Profile on Record"
+
+        # 3. Resolve Active Monthly Income
+        if stated_income is not None:
+            active_income = float(stated_income)
+            data_sources["monthly_income"] = "Stated Scenario Input"
+            if baseline_cf and abs(active_income - baseline_cf.projected_income) > 0.01:
+                conflicts.append(
+                    f"Stated monthly income ({active_income:,.2f}) differs from historical forecast ({baseline_cf.projected_income:,.2f})"
+                )
+        elif baseline_cf:
+            active_income = float(baseline_cf.projected_income)
+            data_sources["monthly_income"] = "Baseline ML Forecast"
+        else:
+            active_income = 0.0
+            data_sources["monthly_income"] = "Not Available"
+
+        # 4. Resolve Active Monthly Expenses
+        if stated_expenses is not None:
+            active_expenses = float(stated_expenses)
+            data_sources["monthly_expenses"] = "Stated Scenario Input"
+            if baseline_cf and abs(active_expenses - baseline_cf.projected_expenses) > 0.01:
+                conflicts.append(
+                    f"Stated monthly expenses ({active_expenses:,.2f}) differs from historical forecast ({baseline_cf.projected_expenses:,.2f})"
+                )
+        elif baseline_cf:
+            active_expenses = float(baseline_cf.projected_expenses)
+            data_sources["monthly_expenses"] = "Baseline ML Forecast"
+        else:
+            active_expenses = 0.0
+            data_sources["monthly_expenses"] = "Not Available"
+
+        known_obligations = float(baseline_cf.known_obligations) if baseline_cf else 0.0
+
+        # 5. Core Financial Calculations
+        monthly_savings = round(active_income - active_expenses, 2)
+        data_sources["monthly_savings"] = "Calculated (Monthly Income - Monthly Expenses)"
+
+        if is_annual:
+            monthly_premium_provision = round(amount / 12.0, 2)
+            data_sources["monthly_premium_provision"] = "Calculated (Annual Premium / 12)"
+        else:
+            monthly_premium_provision = None
+
+        immediate_post_payment_balance = round(active_balance - amount, 2)
+        data_sources["immediate_post_payment_balance"] = "Calculated (Bank Balance - Purchase Amount)"
+
+        balance_above_emergency_fund = round(immediate_post_payment_balance - active_buffer, 2)
+        data_sources["balance_above_emergency_fund"] = "Calculated (Immediate Post-Payment Balance - Minimum Emergency Fund)"
+
+        projected_net_cf = round(monthly_savings - known_obligations, 2)
+        data_sources["projected_net_cash_flow"] = "Calculated (Net Monthly Savings - Obligations)"
+
+        resulting_balance = round(active_balance + projected_net_cf - amount, 2)
+        shortfall = max(0.0, round(active_buffer - resulting_balance, 2))
+        has_conflict = len(conflicts) > 0
+
+        # 6. Status Determination
+        reasons: List[str] = [
+            f"Bank balance: {active_balance:,.2f} ({data_sources['current_balance']})",
+            f"Monthly income: {active_income:,.2f} ({data_sources['monthly_income']})",
+            f"Monthly expenses: {active_expenses:,.2f} ({data_sources['monthly_expenses']})",
+            f"Monthly savings: {monthly_savings:,.2f} (Calculated: Income - Expenses)",
+            f"Purchase/Premium amount: {amount:,.2f}" + (" (Annual Premium)" if is_annual else ""),
+        ]
+        if is_annual and monthly_premium_provision is not None:
+            reasons.append(f"Monthly premium provision: {monthly_premium_provision:,.2f} (Annual Premium ÷ 12)")
+        reasons.append(f"Immediate post-payment balance: {immediate_post_payment_balance:,.2f} (Balance - Purchase Amount)")
+        reasons.append(f"Minimum emergency fund: {active_buffer:,.2f} ({data_sources['minimum_buffer']})")
+        reasons.append(f"Balance above emergency fund: {balance_above_emergency_fund:,.2f} (Post-Payment Balance - Emergency Fund)")
+        reasons.append(f"Projected net cash flow: {projected_net_cf:,.2f}")
+        reasons.append(f"Resulting balance after cycle: {resulting_balance:,.2f}")
+        if conflicts:
+            reasons.append(f"Input conflicts vs saved profile: {'; '.join(conflicts)}")
+
+        if resulting_balance >= active_buffer and immediate_post_payment_balance >= active_buffer:
             status = "AFFORDABLE"
             trade_off = 0.0
             reasons.append(
-                f"Result: balance {resulting_balance:.2f} is at or above the minimum buffer "
-                f"{self.profile.minimum_balance_to_keep:.2f}."
+                f"Result: immediate balance ({immediate_post_payment_balance:,.2f}) and resulting balance ({resulting_balance:,.2f}) "
+                f"both maintain the required buffer ({active_buffer:,.2f})."
             )
-        elif resulting_balance > 0 and shortfall <= baseline_cf.projected_expenses:
-            # Technically possible to cover shortfall from discretionary savings
+        elif resulting_balance >= active_buffer and immediate_post_payment_balance < active_buffer:
+            # Temporary buffer dip until month-end cash flow covers it
+            status = "POTENTIALLY AFFORDABLE WITH TRADE-OFF"
+            trade_off = max(0.0, active_buffer - immediate_post_payment_balance)
+            reasons.append(
+                f"Result: immediate payment temporarily draws balance to {immediate_post_payment_balance:,.2f} "
+                f"(below buffer {active_buffer:,.2f} by {trade_off:,.2f}), restored by month-end cash flow."
+            )
+        elif resulting_balance > 0 and shortfall <= (active_expenses if active_expenses > 0 else 1.0):
             status = "POTENTIALLY AFFORDABLE WITH TRADE-OFF"
             trade_off = shortfall
             reasons.append(
-                f"Result: balance {resulting_balance:.2f} is below the minimum buffer by {shortfall:.2f}. "
-                f"You could cover this shortfall by reducing discretionary spending "
-                f"(projected: {baseline_cf.projected_expenses:.2f}) by {shortfall:.2f}."
+                f"Result: resulting balance {resulting_balance:,.2f} is below minimum buffer by {shortfall:,.2f}. "
+                f"You could cover this shortfall by reducing discretionary spending."
             )
         else:
             status = "NOT AFFORDABLE UNDER CURRENT PROJECTION"
             trade_off = shortfall
             reasons.append(
-                f"Result: balance {resulting_balance:.2f} is below the minimum buffer by {shortfall:.2f}. "
-                f"The shortfall ({shortfall:.2f}) exceeds projected discretionary expenses "
-                f"({baseline_cf.projected_expenses:.2f}), so a trade-off cannot fully recover it."
+                f"Result: resulting balance {resulting_balance:,.2f} breaches minimum buffer by {shortfall:,.2f}."
             )
 
-        # -----------------------------------------------------------------
-        # Payment option viability check
-        # (each option is evaluated independently – no double-counting)
-        # -----------------------------------------------------------------
+        # 7. Payment Option Viability Check
         viable_options: List[PaymentOption] = []
         for opt in payment_options:
             if opt.number_of_payments == 1:
-                # Full payment — same as the one-off purchase check
                 if status in ("AFFORDABLE", "POTENTIALLY AFFORDABLE WITH TRADE-OFF"):
                     viable_options.append(opt)
             elif opt.number_of_payments > 1:
-                # Monthly installment — check monthly payment against cf
                 monthly_payment = opt.payment_amount
-                installment_balance = (
-                    self.profile.current_available_balance
-                    + projected_net_cf
-                    - monthly_payment
-                )
-                if installment_balance >= self.profile.minimum_balance_to_keep:
+                installment_balance = active_balance + projected_net_cf - monthly_payment
+                if installment_balance >= active_buffer:
                     viable_options.append(opt)
 
         return AffordabilityResult(
@@ -172,4 +227,11 @@ class AffordabilityEngine:
             viable_payment_options=viable_options,
             trade_off_required=trade_off,
             reasons=reasons,
+            immediate_post_payment_balance=immediate_post_payment_balance,
+            balance_above_emergency_fund=balance_above_emergency_fund,
+            monthly_savings=monthly_savings,
+            monthly_premium_provision=monthly_premium_provision,
+            is_annual_premium=is_annual,
+            has_conflict=has_conflict,
+            data_sources=data_sources,
         )

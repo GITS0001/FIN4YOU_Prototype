@@ -12,6 +12,12 @@ from pathlib import Path
 
 from app.schemas.financial import FinancialProfile, Transaction, PaymentOption
 from app.financial.state import FinancialStateEngine
+from app.financial.merchants import (
+    detect_merchant_info,
+    resolve_category_from_description,
+    extract_merchant_breakdown,
+    MERCHANT_REGISTRY
+)
 from app.ml.forecasting import PredictionEngine
 from app.decision.affordability import AffordabilityEngine
 from app.decision.simulation import WhatIfSimulator
@@ -30,6 +36,7 @@ from app.schemas.planner import (
 
 class SpendingAnalysisArgs(BaseModel):
     category: Optional[str] = Field(None, description="Optional spending category to filter by (e.g. food, rent, shopping)")
+    merchant: Optional[str] = Field(None, description="Optional specific merchant or app name (e.g. Myntra, Amazon, Swiggy, Blinkit, Uber)")
     period: Optional[str] = Field(None, description="Optional time period filter (e.g. 'last month', 'current')")
 
 
@@ -39,8 +46,13 @@ class FinancialSummaryArgs(BaseModel):
 
 class AffordabilityCheckArgs(BaseModel):
     purchase_amount: float = Field(..., gt=0, description="Purchase amount to evaluate in user currency")
-    item_description: Optional[str] = Field(None, description="Description of the item (e.g. phone, car, laptop)")
+    item_description: Optional[str] = Field(None, description="Description of the item (e.g. phone, car, laptop, mediclaim)")
     payment_method: Optional[str] = Field("upfront", description="Preferred payment method (upfront or installments)")
+    stated_balance: Optional[float] = Field(None, description="Stated bank balance override if testing a scenario")
+    stated_income: Optional[float] = Field(None, description="Stated monthly income override if testing a scenario")
+    stated_expenses: Optional[float] = Field(None, description="Stated monthly expenses override if testing a scenario")
+    stated_buffer: Optional[float] = Field(None, description="Stated minimum emergency fund / buffer override")
+    is_annual: Optional[bool] = Field(False, description="Whether the purchase is an annual recurring premium/cost")
 
     @field_validator("purchase_amount")
     @classmethod
@@ -88,18 +100,78 @@ def execute_spending_analysis(
 
     currency = profile.home_currency
     category_filter = args.category.lower().strip() if args.category else None
+    merchant_filter = args.merchant.lower().strip() if args.merchant else None
 
+    # Check if category_filter is actually a merchant name (e.g. user passed "myntra" as category)
+    if category_filter and not merchant_filter:
+        merchant_match = detect_merchant_info(category_filter)
+        if merchant_match:
+            merchant_filter = merchant_match["display_name"].lower()
+            category_filter = merchant_match["category"].lower()
+
+    # Extract full breakdown with recognized apps / merchants
+    merchant_data = extract_merchant_breakdown(transactions)
+    merchants_by_cat = merchant_data.get("merchants_by_category", {})
+    detected_apps_txs = merchant_data.get("detected_app_transactions", [])
+
+    total_expenses = state.expenses
     target_category_spending = 0.0
     category_found = False
 
+    category_distribution = []
     cat_list = []
     for c in state.category_spending:
-        cat_list.append({"category": c.category, "total_amount": round(c.total_amount, 2)})
-        if category_filter and (category_filter in c.category.lower() or c.category.lower() in category_filter):
+        cat_key = c.category.lower()
+        amt = round(c.total_amount, 2)
+        pct = round((c.total_amount / total_expenses * 100), 1) if total_expenses > 0 else 0.0
+
+        # Get apps detected in this category
+        cat_apps = [
+            {"name": app_name, "amount": round(app_amt, 2)}
+            for app_name, app_amt in sorted(
+                merchants_by_cat.get(cat_key, {}).items(), key=lambda x: x[1], reverse=True
+            )
+        ]
+
+        cat_entry = {
+            "category": c.category,
+            "total_amount": amt,
+            "percentage": pct,
+            "apps": cat_apps,
+            "app_count": len(cat_apps),
+        }
+        category_distribution.append(cat_entry)
+        cat_list.append({"category": c.category, "total_amount": amt, "apps": cat_apps})
+
+        if category_filter and (category_filter in cat_key or cat_key in category_filter):
             target_category_spending += c.total_amount
             category_found = True
 
     top_categories = sorted(cat_list, key=lambda x: x["total_amount"], reverse=True)[:5]
+
+    # Calculate specific merchant spending if queried
+    queried_merchant_name = None
+    queried_merchant_amount = None
+    if merchant_filter:
+        matching_total = 0.0
+        matched_any = False
+        canonical_name = None
+        for t in transactions:
+            m_info = detect_merchant_info(t.description)
+            if m_info and (
+                merchant_filter in m_info["display_name"].lower()
+                or m_info["display_name"].lower() in merchant_filter
+                or merchant_filter in str(t.description).lower()
+            ):
+                matched_any = True
+                canonical_name = m_info["display_name"]
+                ev_type = str(getattr(t, "event_type", "") or "").lower()
+                dir_type = str(getattr(t, "direction", "") or "").lower()
+                if dir_type in ["debit", "outflow"] or ev_type in ["expense", "subscription", "debt_payment"]:
+                    matching_total += abs(float(t.amount or 0.0))
+        if matched_any:
+            queried_merchant_name = canonical_name or merchant_filter.title()
+            queried_merchant_amount = round(matching_total, 2)
 
     return {
         "tool": "analyze_spending",
@@ -109,8 +181,13 @@ def execute_spending_analysis(
         "discretionary_expenses": round(state.discretionary_expenses, 2),
         "savings_rate": round(state.savings_rate, 4),
         "top_categories": top_categories,
+        "category_distribution": category_distribution,
+        "merchants_by_category": merchants_by_cat,
+        "detected_apps_count": len(detected_apps_txs),
         "queried_category": args.category,
         "queried_category_amount": round(target_category_spending, 2) if category_found else None,
+        "queried_merchant": queried_merchant_name,
+        "queried_merchant_amount": queried_merchant_amount,
         "anomaly_count": len([a for a in state.anomalies if a.is_anomaly]),
         "data_period": f"Aggregated across {len(transactions)} historical transactions",
     }
@@ -191,7 +268,11 @@ def execute_affordability_check(
     pred_engine = PredictionEngine()
     prediction = pred_engine.run_prediction(transactions, profile)
 
-    if not prediction.available:
+    has_stated_scenario = any(
+        v is not None for v in [args.stated_balance, args.stated_income, args.stated_expenses, args.stated_buffer]
+    )
+
+    if not prediction.available and not has_stated_scenario:
         return {
             "tool": "check_affordability",
             "status": "INSUFFICIENT_DATA",
@@ -202,25 +283,50 @@ def execute_affordability_check(
     payment_options = _load_prototype_payment_options(profile.user_id, args.purchase_amount)
 
     aff_engine = AffordabilityEngine(profile, prediction)
-    result = aff_engine.evaluate_purchase(args.purchase_amount, payment_options)
+    result = aff_engine.evaluate_purchase(
+        amount=args.purchase_amount,
+        payment_options=payment_options,
+        stated_balance=args.stated_balance,
+        stated_income=args.stated_income,
+        stated_expenses=args.stated_expenses,
+        stated_buffer=args.stated_buffer,
+        is_annual=args.is_annual or False,
+    )
 
     viable_options_dict = [o.model_dump() for o in result.viable_payment_options]
+
+    active_balance = args.stated_balance if args.stated_balance is not None else profile.current_available_balance
+    active_buffer = args.stated_buffer if args.stated_buffer is not None else profile.minimum_balance_to_keep
+    baseline_cf = prediction.projected_cash_flow if (prediction.available and prediction.projected_cash_flow) else None
+    active_income = args.stated_income if args.stated_income is not None else (baseline_cf.projected_income if baseline_cf else 0.0)
+    active_expenses = args.stated_expenses if args.stated_expenses is not None else (baseline_cf.projected_expenses if baseline_cf else 0.0)
+    projected_cf = (active_income - active_expenses) if (args.stated_income is not None or args.stated_expenses is not None) else (baseline_cf.projected_cash_flow if baseline_cf else 0.0)
 
     return {
         "tool": "check_affordability",
         "currency": profile.home_currency,
         "purchase_amount": round(args.purchase_amount, 2),
         "affordability_status": result.status,
-        "current_balance": round(profile.current_available_balance, 2),
-        "minimum_buffer": round(profile.minimum_balance_to_keep, 2),
-        "projected_net_cash_flow": round(
-            prediction.projected_cash_flow.projected_cash_flow if prediction.projected_cash_flow else 0.0, 2
-        ),
+        "current_balance": round(active_balance, 2),
+        "minimum_buffer": round(active_buffer, 2),
+        "monthly_income": round(active_income, 2),
+        "monthly_expenses": round(active_expenses, 2),
+        "monthly_savings": round(result.monthly_savings, 2) if result.monthly_savings is not None else round(active_income - active_expenses, 2),
+        "monthly_premium_provision": round(result.monthly_premium_provision, 2) if result.monthly_premium_provision is not None else None,
+        "immediate_post_payment_balance": round(result.immediate_post_payment_balance, 2) if result.immediate_post_payment_balance is not None else round(active_balance - args.purchase_amount, 2),
+        "balance_above_emergency_fund": round(result.balance_above_emergency_fund, 2) if result.balance_above_emergency_fund is not None else round(active_balance - args.purchase_amount - active_buffer, 2),
+        "is_annual_premium": args.is_annual or False,
+        "projected_net_cash_flow": round(projected_cf, 2),
+        "projected_cash_flow": round(projected_cf, 2),
         "resulting_balance": round(result.resulting_balance, 2),
         "shortfall": round(result.shortfall, 2),
         "trade_off_required": round(result.trade_off_required, 2),
         "viable_options": viable_options_dict,
         "reasons": result.reasons,
+        "has_conflict": result.has_conflict or False,
+        "data_sources": result.data_sources or {},
+        "profile_balance": round(profile.current_available_balance, 2),
+        "profile_buffer": round(profile.minimum_balance_to_keep, 2),
     }
 
 

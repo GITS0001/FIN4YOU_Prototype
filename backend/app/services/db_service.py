@@ -37,7 +37,7 @@ def get_user_profile(db: Optional[Session], user_id: Any) -> Optional[FinancialP
 
             return FinancialProfile(
                 user_id=str(sp_profile.get("user_id")),
-                home_currency=sp_profile.get("home_currency", "USD"),
+                home_currency=sp_profile.get("home_currency", "INR"),
                 current_available_balance=float(sp_profile.get("current_available_balance", 0.0)),
                 minimum_balance_to_keep=float(sp_profile.get("minimum_balance_to_keep", 0.0)),
                 financial_priorities=priorities,
@@ -58,7 +58,7 @@ def get_user_profile(db: Optional[Session], user_id: Any) -> Optional[FinancialP
         if db_profile:
             return FinancialProfile(
                 user_id=str(db_profile.user_id),
-                home_currency=db_profile.home_currency,
+                home_currency=db_profile.home_currency or "INR",
                 current_available_balance=db_profile.current_available_balance,
                 minimum_balance_to_keep=db_profile.minimum_balance_to_keep,
                 financial_priorities=db_profile.financial_priorities.split("|") if db_profile.financial_priorities else [],
@@ -69,14 +69,34 @@ def get_user_profile(db: Optional[Session], user_id: Any) -> Optional[FinancialP
                 max_installment_months=db_profile.max_installment_months
             )
 
-    # Prototype data fallback for local demo and test fixtures
+        # If user exists in DB but profile has not been configured yet, return default profile
+        from app.models import User as DBUser
+        try:
+            user_exists = db.query(DBUser).filter(DBUser.id == uid_int).first()
+            if user_exists:
+                return FinancialProfile(
+                    user_id=str(uid_int),
+                    home_currency="INR",
+                    current_available_balance=0.0,
+                    minimum_balance_to_keep=0.0,
+                    financial_priorities=[],
+                    expense_categories_to_protect=[],
+                    expense_categories_user_is_willing_to_reduce=[],
+                    expense_categories_user_is_willing_to_stop=[],
+                    payment_methods_user_will_consider=[],
+                    max_installment_months=12
+                )
+        except Exception:
+            pass
+
+    # Prototype data fallback for prototype and demo fixtures
     try:
+        u_str = str(user_id)
+        if not u_str.startswith("user_") and u_str.isdigit():
+            u_str = f"user_{int(u_str):02d}" if int(u_str) < 10 else f"user_{u_str}"
         from app.ingestion.loader import DataLoader
         loader = DataLoader("data/prototype")
         proto_profiles = loader.load_profiles()
-        u_str = str(user_id)
-        if not u_str.startswith("user_") and u_str.isdigit():
-            u_str = f"user_{u_str}"
         for pf in proto_profiles:
             if pf.user_id == u_str or pf.user_id == str(user_id):
                 return pf
@@ -111,7 +131,7 @@ def get_user_transactions(db: Optional[Session], user_id: Any) -> List[SchemaTra
                 category=t.get("category"),
                 direction=t.get("direction"),
                 amount=float(t.get("amount", 0.0)),
-                currency=t.get("currency", "USD"),
+                currency=t.get("currency", "INR") or "INR",
                 event_date=ev_date,
                 settlement_date=set_date,
                 status=t.get("status", "SETTLED"),
@@ -126,7 +146,7 @@ def get_user_transactions(db: Optional[Session], user_id: Any) -> List[SchemaTra
     if db is not None:
         try:
             uid_int = int(user_id) if str(user_id).isdigit() else user_id
-            db_transactions = db.query(Transaction).filter(Transaction.user_id == uid_int).all()
+            db_transactions = db.query(Transaction).filter(Transaction.user_id == uid_int).order_by(Transaction.event_date.desc()).all()
         except Exception:
             db_transactions = []
 
@@ -152,14 +172,14 @@ def get_user_transactions(db: Optional[Session], user_id: Any) -> List[SchemaTra
                 ))
             return transactions
 
-    # Prototype data fallback
+    # Prototype data fallback for prototype and demo fixtures
     try:
+        u_str = str(user_id)
+        if not u_str.startswith("user_") and u_str.isdigit():
+            u_str = f"user_{int(u_str):02d}" if int(u_str) < 10 else f"user_{u_str}"
         from app.ingestion.loader import DataLoader
         loader = DataLoader("data/prototype")
         proto_events = loader.load_events()
-        u_str = str(user_id)
-        if not u_str.startswith("user_") and u_str.isdigit():
-            u_str = f"user_{u_str}"
         filtered = [e for e in proto_events if e.user_id == u_str or e.user_id == str(user_id)]
         if filtered:
             return filtered

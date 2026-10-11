@@ -20,6 +20,7 @@ class ParsedIntent(BaseModel):
     intent: IntentType
     amount: Optional[float] = None
     category: Optional[str] = None
+    merchant: Optional[str] = None
     payment_option_id: Optional[str] = None
     change_amount: Optional[float] = None
     income_shock_percentage: Optional[float] = 0.0
@@ -30,6 +31,12 @@ class ParsedIntent(BaseModel):
     tool_name: Optional[str] = None
     tool_args: Optional[Dict[str, Any]] = None
     missing_fields: Optional[List[str]] = None
+    stated_balance: Optional[float] = None
+    stated_income: Optional[float] = None
+    stated_expenses: Optional[float] = None
+    stated_buffer: Optional[float] = None
+    is_annual: Optional[bool] = False
+    item_description: Optional[str] = None
 
 class CopilotRequest(BaseModel):
     user_id: Optional[str] = None

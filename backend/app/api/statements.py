@@ -19,8 +19,8 @@ async def upload_statement(
     Parses the file, runs it through the ML Data Quality Pipeline,
     categorizes using the ML categorization model, and persists the transactions.
     """
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="Only CSV files are supported")
+    if not (file.filename.endswith('.csv') or file.filename.endswith('.pdf')):
+        raise HTTPException(status_code=400, detail="Only CSV and PDF files are supported")
 
     content = await file.read()
 
@@ -31,9 +31,12 @@ async def upload_statement(
     # 1. Parse and apply Data Quality Pipeline
     try:
         parser = StatementParser(user_id=str(current_user.id))
-        transactions, metrics = parser.parse_csv(content)
+        if file.filename.endswith('.pdf'):
+            transactions, metrics = parser.parse_pdf(content)
+        else:
+            transactions, metrics = parser.parse_csv(content)
     except Exception as e:
-        raise HTTPException(status_code=400, detail="Failed to parse statement. Please ensure it is a valid CSV.")
+        raise HTTPException(status_code=400, detail=f"Failed to parse statement: {str(e)}")
 
     if not transactions:
         return {"message": "No valid transactions found in the file", "metrics": metrics}

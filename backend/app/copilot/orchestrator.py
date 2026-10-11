@@ -146,7 +146,15 @@ class CopilotOrchestrator:
                         limitations=["A valid positive amount is required to evaluate purchase affordability."]
                     )
 
-                tool_args = AffordabilityCheckArgs(purchase_amount=parsed.amount)
+                tool_args = AffordabilityCheckArgs(
+                    purchase_amount=parsed.amount,
+                    item_description=parsed.item_description,
+                    stated_balance=parsed.stated_balance,
+                    stated_income=parsed.stated_income,
+                    stated_expenses=parsed.stated_expenses,
+                    stated_buffer=parsed.stated_buffer,
+                    is_annual=parsed.is_annual or False,
+                )
                 structured_res = FINANCIAL_TOOLS["check_affordability"]["executor"](tool_args, profile, user_events)
                 structured_res["type"] = "affordability"
                 structured_res["proposed_amount"] = parsed.amount
@@ -156,12 +164,16 @@ class CopilotOrchestrator:
                 aff_status = structured_res.get("affordability_status", "")
                 shortfall = structured_res.get("shortfall", 0.0)
                 viable_opts = structured_res.get("viable_options", [])
+                has_conflict = structured_res.get("has_conflict", False)
+                active_b = structured_res.get("current_balance", profile.current_available_balance)
+                active_buf = structured_res.get("minimum_buffer", profile.minimum_balance_to_keep)
+                active_cf = structured_res.get("projected_net_cash_flow", 0.0)
 
                 trace = DecisionTrace(
-                    observed_fact=f"Current balance: {profile.current_available_balance:.2f}. Required buffer: {profile.minimum_balance_to_keep:.2f}.",
-                    calculation=f"Proposed purchase: {parsed.amount:.2f}. Projected net cash flow: {structured_res.get('projected_net_cash_flow', 0.0):.2f}.",
-                    prediction=f"Projected balance after purchase: {resulting_b:.2f}. Shortfall vs buffer: {shortfall:.2f}.",
-                    simulation=f"Resulting balance if paid upfront: {resulting_b:.2f}. Buffer shortfall: {shortfall:.2f}.",
+                    observed_fact=f"Bank balance: {active_b:,.2f}. Required buffer: {active_buf:,.2f}." + (f" (Profile on record: {profile.current_available_balance:,.2f} / {profile.minimum_balance_to_keep:,.2f})" if has_conflict else ""),
+                    calculation=f"Proposed purchase: {parsed.amount:,.2f}. Projected net cash flow: {active_cf:,.2f}.",
+                    prediction=f"Projected balance after purchase: {resulting_b:,.2f}. Shortfall vs buffer: {shortfall:,.2f}.",
+                    simulation=f"Resulting balance if paid upfront: {resulting_b:,.2f}. Buffer shortfall: {shortfall:,.2f}.",
                     recommendation=Recommendation(
                         recommendation_type="AFFORDABILITY",
                         actionable_text=(
@@ -172,12 +184,21 @@ class CopilotOrchestrator:
                         expected_impact=ExpectedImpact(
                             cash_flow_difference=0.0,
                             balance_difference=-parsed.amount,
-                            buffer_status_change="breached" if resulting_b < profile.minimum_balance_to_keep else "maintained"
+                            buffer_status_change="breached" if resulting_b < active_buf else "maintained"
                         ),
-                        confidence_level="HIGH",
-                        confidence_reason="Deterministic calculation based on projected cash flow and user profile."
+                        confidence_level="MEDIUM" if has_conflict else ("HIGH" if len(user_events) >= 3 else "MEDIUM"),
+                        confidence_reason=(
+                            f"Input variance detected between user-stated scenario and saved profile. Confidence downgraded to MEDIUM."
+                            if has_conflict
+                            else "Deterministic calculation based on projected cash flow and user profile."
+                        )
                     ),
-                    supporting_data={"shortfall": shortfall, "trade_off_required": structured_res.get("trade_off_required", 0.0)}
+                    supporting_data={
+                        "shortfall": shortfall,
+                        "trade_off_required": structured_res.get("trade_off_required", 0.0),
+                        "immediate_post_payment_balance": structured_res.get("immediate_post_payment_balance", 0.0),
+                        "balance_above_emergency_fund": structured_res.get("balance_above_emergency_fund", 0.0),
+                    }
                 )
 
                 action_links = [
@@ -218,7 +239,10 @@ class CopilotOrchestrator:
 
             # --- SPENDING ANALYSIS ---
             elif parsed.intent == IntentType.SPENDING_ANALYSIS:
-                tool_args = SpendingAnalysisArgs(category=parsed.category)
+                tool_args = SpendingAnalysisArgs(
+                    category=parsed.category,
+                    merchant=getattr(parsed, "merchant", None)
+                )
                 structured_res = FINANCIAL_TOOLS["analyze_spending"]["executor"](tool_args, profile, user_events)
                 structured_res["type"] = "spending_analysis"
 
@@ -300,18 +324,26 @@ class CopilotOrchestrator:
             currency=currency,
         )
 
+        has_conflict = structured_res.get("has_conflict", False)
+        if has_conflict:
+            overall_confidence = "MEDIUM"
+        elif len(user_events) >= 3 and status == "SUCCESS":
+            overall_confidence = "HIGH"
+        else:
+            overall_confidence = "MEDIUM"
+
         return CopilotResponse(
             intent=parsed.intent,
             response=resp_text,
             direct_answer=comp["direct_answer"],
             decision_trace=trace,
             structured_result=structured_res,
-            confidence="HIGH" if len(user_events) >= 3 else "MEDIUM",
+            confidence=overall_confidence,
             status=status,
             data_sources=[
                 "financial_profiles", "financial_events",
                 "FinancialStateEngine", "PredictionEngine", "ConstrainedPlannerEngine", "AffordabilityEngine"
-            ],
+            ] + (["stated_scenario_inputs"] if has_conflict or parsed.stated_balance is not None else []),
             action_links=action_links,
             observed_facts=comp["observed_facts"],
             forecast_details=comp["forecast_details"],

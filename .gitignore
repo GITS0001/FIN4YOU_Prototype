@@ -250,6 +250,15 @@ backend/e2e_validation.py
 backend/migrate_csv_to_db.py
 backend/train_models.py
 e2e_test.py
+scratch/
+backend/scratch/
+frontend_backup/
+patch_tests*.py
+verify_live_supabase.py
+test_e2e_backend2.py
+migrate.py
+audit_results.json
+dist/
 
 # Accidental / stray files
 frontend/src/pages/<!doctype html>

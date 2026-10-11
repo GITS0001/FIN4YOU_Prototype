@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { SignupForm } from '../components/auth/AuthForms';
 import AuthVideoPanel from '../components/auth/AuthVideoPanel';
+import fin4youLogo from '../assets/fin4you_logo.jpg';
 
 export default function Signup() {
   return (
@@ -20,9 +21,7 @@ export default function Signup() {
           {/* Mobile-only logo */}
           <div className="lg:hidden mb-6 flex items-center justify-between">
             <Link to="/" className="inline-flex items-center gap-2 font-bold text-base text-[#0B0F19]">
-              <span className="w-7 h-7 bg-[#2563EB] text-white rounded-lg grid place-items-center text-xs font-black">
-                F
-              </span>
+              <img src={fin4youLogo} alt="FIN4YOU" className="w-7 h-7 rounded-lg object-contain shadow-xs border border-gray-100" />
               <span>
                 Fin4<strong className="text-[#2563EB]">You</strong>
               </span>

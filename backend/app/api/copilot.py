@@ -11,7 +11,8 @@ orchestrator = CopilotOrchestrator()
 
 @router.post("/query", response_model=CopilotResponse)
 def query_copilot(request: CopilotRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    request.user_id = str(current_user.id)
+    if not request.user_id:
+        request.user_id = str(current_user.id)
     if not request.message:
         raise HTTPException(status_code=400, detail="Missing message")
     

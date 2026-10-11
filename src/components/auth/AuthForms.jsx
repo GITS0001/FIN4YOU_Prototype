@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
+import { apiClient } from '../../api/client';
 
 function Input({ icon: Icon, type = 'text', id, label, value, onChange, error, placeholder, right }) {
   return (
@@ -68,6 +70,7 @@ export function LoginForm() {
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const validate = () => {
     const e = {};
@@ -84,13 +87,40 @@ export function LoginForm() {
     if (Object.keys(e).length) return;
     setLoading(true);
     setApiError('');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      setApiError(error.message.includes('Invalid') ? 'Incorrect email or password. Please try again.' : error.message);
-    } else {
-      navigate('/dashboard');
+
+    // 1. Try Supabase sign in
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error && data?.session?.access_token) {
+        login(data.session.access_token);
+        setLoading(false);
+        navigate('/dashboard');
+        return;
+      }
+    } catch (err) {
+      console.warn('Supabase login check skipped:', err);
     }
+
+    // 2. Hybrid fallback to native backend login
+    try {
+      const params = new URLSearchParams();
+      params.append('username', email);
+      params.append('password', password);
+      const response = await apiClient.post('/api/auth/login', params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      if (response.data?.access_token) {
+        login(response.data.access_token);
+        setLoading(false);
+        navigate('/dashboard');
+        return;
+      }
+    } catch (nativeErr) {
+      const msg = nativeErr?.response?.data?.detail || nativeErr?.message || 'Incorrect email or password. Please try again.';
+      setApiError(msg);
+    }
+
+    setLoading(false);
   };
 
   return (

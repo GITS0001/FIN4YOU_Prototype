@@ -55,11 +55,24 @@ class AffordabilityRequest(BaseModel):
 
 
 class WhatIfRequest(BaseModel):
-    scenario_type: str  # "reduce_expense" or "add_purchase"
+    scenario_type: str  # "reduce_expense", "add_purchase", or "reduce_income"
     amount: float
 
 
 class WhatIfResponse(BaseModel):
+    scenario_type: str = "reduce_expense"
+    baseline_income: float = 0.0
+    baseline_expenses: float = 0.0
+    baseline_net_cash_flow: float = 0.0
+    applied_adjustment: float = 0.0
+    scenario_income: float = 0.0
+    scenario_expenses: float = 0.0
+    scenario_net_cash_flow: float = 0.0
+    projected_balance: Optional[float] = None
+    minimum_buffer: Optional[float] = None
+    buffer_status: str = "unknown"
+    assumptions: List[str] = []
+    limitations: List[str] = []
     baseline: ScenarioResult
     scenario: ScenarioResult
     impact: ExpectedImpact
@@ -78,7 +91,7 @@ def read_user_profile(current_user: User = Depends(get_current_user), db: Sessio
             return {
                 "user_id": str(current_user.id),
                 "email": current_user.email,
-                "home_currency": sp.get("home_currency", "USD"),
+                "home_currency": sp.get("home_currency", "INR"),
                 "current_available_balance": float(sp.get("current_available_balance", 0.0)),
                 "minimum_balance_to_keep": float(sp.get("minimum_balance_to_keep", 0.0)),
                 "financial_priorities": _parse_list(sp.get("financial_priorities")),
@@ -170,13 +183,21 @@ def read_user_transactions(
 
 
 @router.get("/state", response_model=FinancialState)
-def get_user_state(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_user_state(
+    month: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     profile = get_user_profile(db, current_user.id)
     if not profile:
         raise HTTPException(status_code=404, detail="User profile not found")
 
     user_events = get_user_transactions(db, current_user.id)
-    state = FinancialStateEngine(str(current_user.id)).calculate_state(user_events)
+    state = FinancialStateEngine(str(current_user.id)).calculate_state(
+        transactions=user_events,
+        profile=profile,
+        month_filter=month
+    )
     # Patch the user_id in the response to match the actual user's DB id
     state.user_id = str(current_user.id)
 
@@ -281,6 +302,7 @@ def get_monthly_statement(current_user: User = Depends(get_current_user), db: Se
         })
 
     pred = PredictionEngine().run_prediction(user_events, profile)
+    state = FinancialStateEngine(str(current_user.id)).calculate_state(user_events)
     forecast_data = {}
     if pred.projected_cash_flows:
         forecast_data = {
@@ -295,7 +317,7 @@ def get_monthly_statement(current_user: User = Depends(get_current_user), db: Se
         "cash_flow": {"current": round(cm["savings"], 2), "previous": round(pm["savings"], 2), "change": round(cm["savings"] - pm["savings"], 2)},
         "category_changes": cat_changes,
         "recurring_obligations": obligations,
-        "anomalies": [a.model_dump() for a in pred.anomalies] if pred.anomalies else [],
+        "anomalies": [a.model_dump() for a in state.anomalies] if state.anomalies else [],
         "forecast": forecast_data,
         "observations": ["Your spending has been analyzed deterministically."] if cm["expenses"] > pm["expenses"] else ["Great job managing your expenses!"],
         "recommendations": ["Review your largest discretionary categories."]
@@ -468,7 +490,24 @@ def run_what_if(request: WhatIfRequest, current_user: User = Depends(get_current
     pred = PredictionEngine().run_prediction(user_events, profile)
 
     if not pred.available or not pred.projected_cash_flow:
-        raise HTTPException(status_code=422, detail=f"Insufficient data: {pred.reason}")
+        state = FinancialStateEngine(str(current_user.id)).calculate_state(user_events)
+        if state.income > 0 or state.expenses > 0:
+            from app.schemas.financial import ProjectedCashFlow
+            pcf = ProjectedCashFlow(
+                period="Current Observed",
+                projected_income=state.income,
+                projected_expenses=state.discretionary_expenses + state.essential_expenses,
+                known_obligations=state.recurring_obligations,
+                projected_cash_flow=state.cash_flow,
+            )
+            pred = PredictionEngineResult(
+                available=True,
+                reason="Derived directly from actual financial state",
+                projected_cash_flow=pcf,
+                projected_cash_flows=[pcf]
+            )
+        else:
+            raise HTTPException(status_code=422, detail=f"Insufficient data: {pred.reason or 'No transactions found'}")
 
     sim = WhatIfSimulator(profile, pred)
     baseline = sim.baseline_scenario()
@@ -478,12 +517,34 @@ def run_what_if(request: WhatIfRequest, current_user: User = Depends(get_current
     elif request.scenario_type == "add_purchase":
         # Treat a one-time purchase as an additional obligation
         scenario = sim.simulate_add_obligation(request.amount)
+    elif request.scenario_type == "reduce_income":
+        scenario = sim.simulate_reduce_income(request.amount)
     else:
-        raise HTTPException(status_code=422, detail="scenario_type must be 'reduce_expense' or 'add_purchase'")
+        raise HTTPException(status_code=422, detail="scenario_type must be 'reduce_expense', 'add_purchase', or 'reduce_income'")
 
     impact = ImpactEngine.calculate_impact(baseline, scenario)
+    buffer_status = "breached" if scenario.buffer_breached else "maintained"
+    min_buf = profile.minimum_balance_to_keep
 
     return WhatIfResponse(
+        scenario_type=request.scenario_type,
+        baseline_income=round(baseline.projected_income, 2),
+        baseline_expenses=round(baseline.projected_expenses + baseline.known_obligations, 2),
+        baseline_net_cash_flow=round(baseline.projected_cash_flow, 2),
+        applied_adjustment=round(request.amount, 2),
+        scenario_income=round(scenario.projected_income, 2),
+        scenario_expenses=round(scenario.projected_expenses + scenario.known_obligations, 2),
+        scenario_net_cash_flow=round(scenario.projected_cash_flow, 2),
+        projected_balance=round(scenario.projected_balance, 2),
+        minimum_buffer=round(min_buf, 2) if min_buf is not None else None,
+        buffer_status=buffer_status,
+        assumptions=[
+            f"Projection based on monthly income of {profile.home_currency} {baseline.projected_income:,.2f}",
+            f"Minimum safety buffer set to {profile.home_currency} {min_buf:,.2f}" if min_buf else "No minimum buffer specified",
+        ],
+        limitations=[
+            "Deterministic single-period projection; unexpected emergency transactions not included.",
+        ],
         baseline=baseline,
         scenario=scenario,
         impact=impact,
@@ -506,14 +567,10 @@ def calculate_global_financial_state(overrides: FinancialOverrides, current_user
 
     user_events = get_user_transactions(db, current_user.id)
 
-    # Calculate current historical totals for scaling
-    current_income = sum(e.amount for e in user_events if e.event_type == "income")
-    current_expenses = 0.0
-    for e in user_events:
-        if e.direction == "debit":
-            current_expenses += e.amount
-        elif e.event_type == "refund":
-            current_expenses -= e.amount
+    # Calculate current baseline totals using deterministic financial engine
+    base_state = FinancialStateEngine(str(current_user.id)).calculate_state(user_events)
+    current_income = base_state.income
+    current_expenses = base_state.expenses
 
     sim_events = deepcopy(user_events)
 
@@ -656,3 +713,194 @@ def evaluate_financial_plan(
     user_events = get_user_transactions(db, current_user.id)
     planner = ConstrainedPlannerEngine()
     return planner.evaluate_plans(user_events, profile, request)
+
+
+@router.get("/planner/90-day-plan")
+def get_90_day_financial_plan(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    90-Day Financial Action Plan API.
+    Builds a personalized 90-day trajectory based on the user's dataset:
+    - Calculates 3 phased 30-day savings milestones and actionable guidance.
+    - Grounded in live income, essential/discretionary expenses, and buffer.
+    - Provides financial terms glossary contextualized with the user's metrics.
+    """
+    profile = get_user_profile(db, current_user.id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="User profile not found")
+
+    user_events = get_user_transactions(db, current_user.id)
+    state = FinancialStateEngine(str(current_user.id)).calculate_state(user_events)
+
+    currency = getattr(profile, "home_currency", "INR") or "INR"
+    available_balance = float(getattr(profile, "current_available_balance", 0.0) or 0.0)
+    minimum_buffer = float(getattr(profile, "minimum_balance_to_keep", 0.0) or 0.0)
+
+    income = float(state.income or 0.0)
+    expenses = float(state.expenses or 0.0)
+    essential = float(state.essential_expenses or (expenses * 0.65))
+    discretionary = float(state.discretionary_expenses or (expenses * 0.35))
+    emi_burden = float(state.emi_burden or 0.0)
+    cash_flow = float(state.cash_flow if state.cash_flow is not None else (income - expenses))
+
+    # Determine monthly savings capacity
+    if cash_flow > 0:
+        monthly_savings = cash_flow
+    elif income > 0:
+        monthly_savings = max(1000.0, income * 0.15)
+    else:
+        monthly_savings = 5000.0
+
+    total_90_day_savings = round(monthly_savings * 3, 2)
+    projected_end_balance = round(available_balance + total_90_day_savings, 2)
+
+    essential_burn = max(1.0, essential if essential > 0 else (expenses if expenses > 0 else 20000.0))
+    runway_months = round(available_balance / essential_burn, 1)
+
+    income_base = max(1.0, income)
+    discretionary_ratio_pct = round((discretionary / income_base) * 100, 1)
+    savings_rate_pct = round((monthly_savings / income_base) * 100, 1)
+    emi_ratio_pct = round((emi_burden / income_base) * 100, 1)
+
+    top_cat_name = "Dining & Discretionary"
+    if state.category_spending:
+        top_cats = sorted(
+            state.category_spending,
+            key=lambda c: getattr(c, 'total_amount', getattr(c, 'amount', 0.0)),
+            reverse=True
+        )
+        if top_cats:
+            first_cat = top_cats[0].category
+            if first_cat and first_cat != "unknown":
+                top_cat_name = first_cat.replace('_', ' ').title()
+
+    p1_target = round(monthly_savings, 2)
+    p2_target = round(monthly_savings, 2)
+    p2_cum = round(monthly_savings * 2, 2)
+    p3_target = round(monthly_savings, 2)
+    p3_cum = total_90_day_savings
+
+    phase1 = {
+        "phase_number": 1,
+        "name": "Phase 1: Liquidity & Leakage Plugging",
+        "days": "Days 1–30",
+        "target_savings": p1_target,
+        "cumulative_target": p1_target,
+        "focus": "Establish baseline cash discipline, curtail flexible leakage, and automate savings.",
+        "advice": [
+            f"Set up an automated standing instruction on salary credit day for {currency} {p1_target:,.0f} directly into your reserve account.",
+            f"Cap flexible spending in {top_cat_name} by 15–20% to prevent unexpected mid-month cash crunches.",
+            "Conduct a zero-delay audit of all active debit mandates and recurring app subscriptions to eliminate unused services."
+        ],
+        "actions": [
+            {"id": "act_1_1", "title": "Automate Salary Day Transfer", "description": f"Schedule auto-deposit of {currency} {p1_target:,.0f} right when income hits.", "completed": False},
+            {"id": "act_1_2", "title": f"Curtail {top_cat_name} Leakage", "description": "Set a weekly discretionary card cap to avoid exceeding budget.", "completed": False},
+            {"id": "act_1_3", "title": "Audit Recurring Subscriptions", "description": "Identify and cancel unused entertainment or utility memberships.", "completed": False}
+        ]
+    }
+
+    phase2 = {
+        "phase_number": 2,
+        "name": "Phase 2: Buffer Fortification & Category Optimization",
+        "days": "Days 31–60",
+        "target_savings": p2_target,
+        "cumulative_target": p2_cum,
+        "focus": "Fortify emergency reserve buffer and renegotiate recurring utility/debt costs.",
+        "advice": [
+            f"Fortify cash balance toward your safety buffer of {currency} {minimum_buffer:,.0f} so unexpected shocks never require high-interest loans.",
+            "Compare flexible utility, insurance, and telecom plans to unlock permanent recurring cost reductions.",
+            "Review credit card and short-term debt billing cycles to ensure zero interest or penalty accruals."
+        ],
+        "actions": [
+            {"id": "act_2_1", "title": "Reach Halfway Savings Milestone", "description": f"Accumulate cumulative {currency} {p2_cum:,.0f} in liquid buffer.", "completed": False},
+            {"id": "act_2_2", "title": "Essential Utility Review", "description": "Optimize electricity, wifi, and grocery spending baskets.", "completed": False},
+            {"id": "act_2_3", "title": "Zero-Fee Debt Clearance", "description": "Ensure full payment on credit balances to protect credit score.", "completed": False}
+        ]
+    }
+
+    phase3 = {
+        "phase_number": 3,
+        "name": "Phase 3: Resiliency, Compounding & Surplus Allocation",
+        "days": "Days 61–90",
+        "target_savings": p3_target,
+        "cumulative_target": p3_cum,
+        "focus": "Lock in compounding resilience and allocate surplus capital beyond buffer.",
+        "advice": [
+            f"Achieve the full 90-day savings milestone of {currency} {p3_cum:,.0f}, bringing projected liquid balance to {currency} {projected_end_balance:,.0f}.",
+            f"Deploy any surplus above the {currency} {minimum_buffer:,.0f} reserve buffer into low-risk liquid yields or short-term deposits.",
+            f"Standardize your {savings_rate_pct}% net savings rate as your permanent household operational benchmark."
+        ],
+        "actions": [
+            {"id": "act_3_1", "title": "Complete 90-Day Savings Goal", "description": f"Hit the {currency} {p3_cum:,.0f} cumulative milestone.", "completed": False},
+            {"id": "act_3_2", "title": "Deploy Buffer Surplus", "description": "Move funds exceeding emergency reserve into interest-bearing liquid assets.", "completed": False},
+            {"id": "act_3_3", "title": "Review 90-Day Run-Rate", "description": "Re-run Artha AI diagnostic to set the subsequent quarter's financial goals.", "completed": False}
+        ]
+    }
+
+    terms = [
+        {
+            "term": "Emergency Reserve Buffer (ERB)",
+            "key": "erb",
+            "your_metric": f"{currency} {minimum_buffer:,.0f}",
+            "status": "Healthy" if available_balance >= minimum_buffer else "Needs Fortification",
+            "definition": "The non-negotiable cash baseline kept in liquid form to insulate your household against sudden medical emergencies or income shocks.",
+            "why_it_matters": "Prevents forced liquidations of long-term investments or recourse to predatory credit when unexpected expenses arise."
+        },
+        {
+            "term": "Liquidity Runway",
+            "key": "runway",
+            "your_metric": f"{runway_months} Months",
+            "status": "Strong" if runway_months >= 3.0 else "Caution",
+            "definition": "The exact duration your existing liquid balance can sustain essential baseline expenditures if all income ceased today.",
+            "why_it_matters": "A runway of 3 to 6 months provides career resilience, peace of mind, and financial independence."
+        },
+        {
+            "term": "Discretionary Expense Ratio (DER)",
+            "key": "der",
+            "your_metric": f"{discretionary_ratio_pct}%",
+            "status": "Optimal" if discretionary_ratio_pct <= 30 else "High",
+            "definition": "The percentage of gross monthly earnings spent on flexible lifestyle choices, dining, entertainment, and non-essential wants.",
+            "why_it_matters": "Maintaining DER below 30% guarantees sufficient monthly surplus to feed savings and investment goals."
+        },
+        {
+            "term": "Debt-to-Income / EMI Burden",
+            "key": "dti",
+            "your_metric": f"{emi_ratio_pct}%",
+            "status": "Safe" if emi_ratio_pct <= 35 else "Elevated",
+            "definition": "The fraction of monthly earnings committed to fixed debt repayments, loan EMIs, and credit servicing.",
+            "why_it_matters": "A low burden (< 35%) ensures high discretionary flexibility and protects against default during income interruptions."
+        },
+        {
+            "term": "Net Savings Yield (Savings Rate)",
+            "key": "savings_rate",
+            "your_metric": f"{savings_rate_pct}%",
+            "status": "High Velocity" if savings_rate_pct >= 25 else "Moderate",
+            "definition": "The portion of total monthly income retained as net unspent surplus after meeting all living costs.",
+            "why_it_matters": "This single metric dictates how rapidly your net worth compounds and how fast your 90-day roadmap succeeds."
+        }
+    ]
+
+    return {
+        "user_id": str(current_user.id),
+        "currency": currency,
+        "dataset_summary": {
+            "monthly_income": income,
+            "monthly_expenses": expenses,
+            "monthly_cash_flow": cash_flow,
+            "available_balance": available_balance,
+            "minimum_buffer": minimum_buffer,
+            "essential_expenses": essential,
+            "discretionary_expenses": discretionary,
+            "emi_burden": emi_burden,
+            "liquidity_runway_months": runway_months,
+            "savings_rate_pct": savings_rate_pct,
+            "discretionary_ratio_pct": discretionary_ratio_pct,
+            "emi_ratio_pct": emi_ratio_pct
+        },
+        "total_90_day_savings_target": total_90_day_savings,
+        "projected_end_balance": projected_end_balance,
+        "phases": [phase1, phase2, phase3],
+        "financial_terms": terms
+    }

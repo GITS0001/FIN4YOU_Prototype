@@ -141,6 +141,21 @@ class WhatIfSimulator:
             raise ValueError("Obligation amount must be non-negative.")
         return self._calculate_scenario(f"Add Obligation of {amount:.2f}", 0.0, 0.0, amount)
 
+    def simulate_reduce_income(self, reduction_amount: float) -> ScenarioResult:
+        """Simulate reducing monthly income by reduction_amount."""
+        if not self.baseline.available:
+            raise ValueError("Baseline prediction is not available.")
+        if reduction_amount < 0:
+            raise ValueError("reduction_amount must be non-negative.")
+        if reduction_amount == 0:
+            return self.baseline_scenario()
+        return self._calculate_scenario(
+            f"Reduce Income by {reduction_amount:.2f}",
+            -reduction_amount,  # negative adj -> less income
+            0.0,
+            0.0,
+        )
+
     def simulate_reduce_discretionary_percentage(self, percentage: float) -> ScenarioResult:
         """Reduce expenses by *percentage* of current projected expenses (0–1)."""
         if not self.baseline.available:

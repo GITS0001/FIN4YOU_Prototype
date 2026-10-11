@@ -41,7 +41,7 @@ class Profile(Base):
     city_tier = Column(String, default="Tier 1")
 
     # Financial Profile
-    home_currency = Column(String, default="USD")
+    home_currency = Column(String, default="INR")
     current_available_balance = Column(Float, default=0.0)
     minimum_balance_to_keep = Column(Float, default=0.0)
 
@@ -66,7 +66,7 @@ class Transaction(Base):
     category = Column(String)
     direction = Column(String)
     amount = Column(Float)
-    currency = Column(String)
+    currency = Column(String, default="INR")
     event_date = Column(Date)
     settlement_date = Column(Date, nullable=True)
     status = Column(String)

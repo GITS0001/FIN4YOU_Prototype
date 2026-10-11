@@ -28,6 +28,7 @@ def _fmt(value: Any, currency: str = "") -> str:
     except (TypeError, ValueError):
         return str(value)
 
+    cur = (currency or "INR").upper()
     symbols = {
         "INR": "₹",
         "USD": "$",
@@ -36,7 +37,7 @@ def _fmt(value: Any, currency: str = "") -> str:
         "ZAR": "R",
         "IDR": "Rp",
     }
-    sym = symbols.get(currency.upper(), f"{currency} " if currency else "")
+    sym = symbols.get(cur, "₹")
 
     if abs(v) >= 1_000_000:
         return f"{sym}{v:,.0f}"
@@ -66,40 +67,47 @@ class StructuredFinancialExplanation:
         self.trade_offs = trade_offs or []
 
     def to_markdown(self) -> str:
-        parts = [self.direct_answer.strip(), ""]
+        parts = []
+        if self.direct_answer:
+            parts.append(self.direct_answer.strip())
+            parts.append("")
 
         if self.observed_facts:
-            parts.append("### A. Observed Facts")
+            parts.append("### 📊 Observed Facts")
             for fact in self.observed_facts:
                 parts.append(f"• {fact}")
             parts.append("")
 
         if self.forecast_details:
-            parts.append("### B. Forecast & Projections")
+            parts.append("### 🔮 Projections & Scenario Impact")
             for k, v in self.forecast_details.items():
                 parts.append(f"• **{k}**: {v}")
             parts.append("")
 
         if self.trade_offs:
-            parts.append("### C. Risks & Trade-Offs")
+            parts.append("### ⚠️ Risks & Considerations")
             for to in self.trade_offs:
                 parts.append(f"• {to}")
             parts.append("")
 
         if self.recommendations:
-            parts.append("### D. Recommendations & Actionable Steps")
+            has_questions = any("Ask:" in r or "“" in r or '"' in r for r in self.recommendations)
+            if has_questions:
+                parts.append("### 💬 Suggested Questions to Try")
+            else:
+                parts.append("### 💡 Recommended Next Steps")
             for rec in self.recommendations:
                 parts.append(f"• {rec}")
             parts.append("")
 
         if self.assumptions:
-            parts.append("### E. Assumptions")
+            parts.append("### 📋 Assumptions")
             for asm in self.assumptions:
                 parts.append(f"• {asm}")
             parts.append("")
 
         if self.limitations:
-            parts.append("### F. Confidence & Limitations")
+            parts.append("### ℹ️ Grounded Verification")
             for lim in self.limitations:
                 parts.append(f"• {lim}")
 
@@ -158,15 +166,33 @@ class ResponseGenerator:
         explanation: StructuredFinancialExplanation,
         currency: str,
     ) -> Optional[str]:
+        cur_code = (currency or "INR").upper()
+        symbols = {
+            "INR": "₹",
+            "USD": "$",
+            "EUR": "€",
+            "GBP": "£",
+            "ZAR": "R",
+            "IDR": "Rp",
+        }
+        sym = symbols.get(cur_code, "₹")
+
         system_prompt = (
             "You are Artha AI, the Financial Health Copilot for FIN4YOU. "
-            "You explain verified financial facts clearly, empathetically, and accurately.\n"
+            "You explain verified financial facts clearly, empathetically, and accurately.\n\n"
             "CRITICAL RULES:\n"
-            "1. NEVER invent balances, dates, interest rates, or financial statistics.\n"
-            "2. Preserve all numbers and currency amounts exactly as provided in the grounded facts.\n"
-            "3. Clearly distinguish between Observed Facts, Forecasts, Recommendations, and Assumptions.\n"
-            "4. Never say a plan is safe if there is a reserve breach risk.\n"
-            "5. Structure the response clearly with bullet points and bold highlights."
+            f"1. CURRENCY LOCK: The user's active currency is {cur_code} with symbol '{sym}'. ALWAYS use '{sym}' (e.g. {sym}60,000) for all monetary amounts. STRICTLY NEVER use any other currency symbol such as ₦, $, €, etc.\n"
+            "2. GROUNDED TRUTH: NEVER invent balances, dates, interest rates, or financial statistics. Preserve all numbers and amounts exactly as provided in the grounded facts.\n"
+            "3. NO PLACEHOLDER TABLES: NEVER output markdown tables or sections with placeholder values like '(none provided yet)', '(none listed)', or '(none at this moment)'. If a section has no data, omit it completely.\n"
+            "4. EXECUTIVE STRUCTURE: Format your response beautifully using clear Markdown sections with emojis:\n"
+            "   - Lead with a clear, concise Executive Summary / Direct Answer.\n"
+            "   - '### 📊 Observed Facts' (only if verified facts exist in the data).\n"
+            "   - '### 🔮 Projections & Scenario Impact' (only if forecast/simulation details exist).\n"
+            "   - '### ⚠️ Risks & Considerations' (only if risks or trade-offs exist).\n"
+            "   - '### 💡 Recommendations & Next Steps' (actionable guidance).\n"
+            "   - '### 💬 Sample Questions to Try' (when giving examples or guiding the user).\n"
+            "5. If answering an introductory greeting or help request, provide a warm, structured onboarding guide highlighting your core capabilities with sample questions.\n"
+            "6. Never say a plan is safe if there is a reserve breach risk."
         )
 
         facts_json = {
@@ -200,24 +226,30 @@ class ResponseGenerator:
         # UNKNOWN / UNSUPPORTED
         # ------------------------------------------------------------------
         if intent == IntentType.UNKNOWN:
+            cur_code = (currency or "INR").upper()
+            sym = "₹" if cur_code in ["INR", ""] else _fmt(0, currency)[0]
             return StructuredFinancialExplanation(
                 direct_answer=(
-                    "I can help you with questions about your finances. Try asking me about:\n"
-                    "• Your spending breakdown or cash flow\n"
-                    "• Whether you can afford a purchase\n"
-                    "• What your next month looks like\n"
-                    "• What happens if you change your spending\n"
-                    "• Personalized recommendations"
+                    "**Hello! I’m Artha AI — your Financial Health Copilot.**\n\n"
+                    "I help you understand and manage your money with clear, factual answers grounded directly in your verified financial transactions and profile.\n\n"
+                    "### 📌 What I Can Help You With\n"
+                    "• **Spending Breakdown & Cash Flow**: Discover exactly where your money goes across essential vs. discretionary categories.\n"
+                    "• **Affordability Analysis**: Test whether a major purchase or installment plan fits your budget without depleting your emergency reserve.\n"
+                    "• **Next-Month Projections**: Forecast upcoming income, expenses, and net cash flow with probabilistic safety bounds.\n"
+                    "• **What-If Simulations**: Stress-test your finances against salary shocks or explore the impact of cutting discretionary spend.\n"
+                    "• **Personalized Strategy**: Compare plans to improve savings, accelerate debt payoff, and safeguard your minimum buffer."
                 ),
                 observed_facts=[],
                 recommendations=[
-                    "Ask: 'Can I afford a phone worth ₹60,000 next month?'",
-                    "Ask: 'What happens if my salary drops by 20%?'",
-                    "Ask: 'Which plan protects my emergency reserve best?'",
-                    "Ask: 'How much did I spend on food last month?'"
+                    f"Ask: “Can I afford a phone worth {sym}60,000 next month?”",
+                    f"Ask: “What happens if my salary drops by 20%?”",
+                    f"Ask: “Which plan protects my emergency reserve best?”",
+                    f"Ask: “How much did I spend on food last month?”"
                 ],
                 assumptions=[],
-                limitations=["Artha AI answers personal finance questions based on your verified transactions and profile."],
+                limitations=[
+                    "I answer only based on your verified transactions and profile—no guesswork, no invented numbers."
+                ],
             )
 
         # ------------------------------------------------------------------
@@ -270,16 +302,36 @@ class ResponseGenerator:
             trade_off = res.get("trade_off_required", 0.0)
             options = res.get("viable_options", [])
 
+            monthly_inc = res.get("monthly_income")
+            monthly_exp = res.get("monthly_expenses")
+            monthly_sav = res.get("monthly_savings")
+            monthly_prov = res.get("monthly_premium_provision")
+            immediate_bal = res.get("immediate_post_payment_balance")
+            balance_above_buf = res.get("balance_above_emergency_fund")
+            is_annual = res.get("is_annual_premium", False)
+            has_conflict = res.get("has_conflict", False)
+            data_sources = res.get("data_sources", {})
+            prof_bal = res.get("profile_balance")
+            prof_buf = res.get("profile_buffer")
+
             if status == "AFFORDABLE":
-                direct = (
-                    f"Yes, {amt_str} is affordable as a full payment based on your current projections.\n\n"
-                    f"After this purchase, your projected balance would be {bal_str}, "
-                    f"which remains above your required safety buffer."
-                )
+                if immediate_bal is not None and balance_above_buf is not None:
+                    direct = (
+                        f"Yes, {amt_str} is affordable based on your financial scenario.\n\n"
+                        f"Paying upfront leaves an immediate bank balance of {_fmt(immediate_bal, currency)}, "
+                        f"retaining {_fmt(balance_above_buf, currency)} above your required emergency reserve of {_fmt(min_buf, currency)}."
+                        + (f"\n\nWith monthly savings of {_fmt(monthly_sav, currency)} (provision: {_fmt(monthly_prov, currency)}/mo), your projected month-end balance is {bal_str}." if monthly_prov else f"\n\nYour projected month-end balance after monthly cash flow is {bal_str}.")
+                    )
+                else:
+                    direct = (
+                        f"Yes, {amt_str} is affordable as a full payment based on your current projections.\n\n"
+                        f"After this purchase, your projected balance would be {bal_str}, "
+                        f"which remains above your required safety buffer."
+                    )
             elif status == "POTENTIALLY AFFORDABLE WITH TRADE-OFF":
                 direct = (
                     f"{amt_str} is potentially affordable, but requires a trade-off.\n\n"
-                    f"Your projected balance after a full purchase would be {bal_str}. "
+                    f"Your projected balance after purchase would be {bal_str}. "
                     f"You would need to reduce discretionary spending by {_fmt(trade_off, currency)} to stay above your minimum buffer."
                 )
             else:
@@ -290,16 +342,38 @@ class ResponseGenerator:
                 )
 
             facts = [
-                f"Current available balance: {_fmt(cur_bal, currency)}",
-                f"Declared minimum reserve buffer: {_fmt(min_buf, currency)}",
-                f"Projected next-month net cash flow: {_fmt(res.get('projected_net_cash_flow', 0.0), currency)}"
+                f"Bank balance: {_fmt(cur_bal, currency)} (Source: {data_sources.get('current_balance', 'Profile on Record')})",
             ]
+            if monthly_inc is not None and monthly_inc > 0:
+                facts.append(f"Monthly income: {_fmt(monthly_inc, currency)} (Source: {data_sources.get('monthly_income', 'Stated Scenario')})")
+            if monthly_exp is not None and monthly_exp > 0:
+                facts.append(f"Monthly expenses: {_fmt(monthly_exp, currency)} (Source: {data_sources.get('monthly_expenses', 'Stated Scenario')})")
+            if monthly_sav is not None:
+                facts.append(f"Monthly savings: {_fmt(monthly_sav, currency)} (Calculation: Income - Expenses)")
+            facts.append(f"Purchase / Premium amount: {amt_str}" + (" (Annual Premium)" if is_annual else ""))
+            if monthly_prov is not None:
+                facts.append(f"Monthly premium provision: {_fmt(monthly_prov, currency)}/mo (Calculation: Annual Premium ÷ 12)")
+            if immediate_bal is not None:
+                facts.append(f"Immediate post-payment balance: {_fmt(immediate_bal, currency)} (Calculation: Balance - Purchase Amount)")
+            facts.append(f"Minimum emergency fund: {_fmt(min_buf, currency)} (Source: {data_sources.get('minimum_buffer', 'Target Buffer')})")
+            if balance_above_buf is not None:
+                facts.append(f"Balance above emergency fund: {_fmt(balance_above_buf, currency)} (Calculation: Immediate Balance - Emergency Fund)")
+            facts.append(f"Projected next-month net cash flow: {_fmt(res.get('projected_net_cash_flow', 0.0), currency)}")
+            facts.append(f"Projected end-of-month balance: {bal_str}")
 
             trade_offs = []
+            if has_conflict:
+                trade_offs.append(
+                    f"Data Discrepancy Note: Stated scenario values differ from saved profile "
+                    f"(Saved balance: {_fmt(prof_bal, currency)}, Saved buffer: {_fmt(prof_buf, currency)}). "
+                    f"Calculations were evaluated using your stated scenario inputs."
+                )
             if shortfall > 0:
                 trade_offs.append(f"An upfront purchase leaves a projected balance of {bal_str}, breaching your buffer by {_fmt(shortfall, currency)}.")
             else:
-                trade_offs.append(f"Projected balance remains at {bal_str}, safely above your minimum reserve of {_fmt(min_buf, currency)}.")
+                trade_offs.append(
+                    f"Projected balance remains at {bal_str}, safely above your minimum reserve of {_fmt(min_buf, currency)}."
+                )
 
             recs = []
             if options:
@@ -317,13 +391,22 @@ class ResponseGenerator:
             elif status != "AFFORDABLE":
                 recs.append("Consider postponing this purchase until your cash reserve grows, or negotiate an extended installment plan.")
 
+            limitations = []
+            if has_conflict:
+                limitations.append("Confidence is set to MEDIUM because stated scenario values differ from your saved profile on record.")
+            else:
+                limitations.append("Affordability is evaluated against declared cash buffers and known obligations only.")
+
             return StructuredFinancialExplanation(
                 direct_answer=direct,
                 observed_facts=facts,
                 trade_offs=trade_offs,
                 recommendations=recs,
-                assumptions=["Assumes variable living expenses remain consistent with your 3-month trailing average."],
-                limitations=["Affordability is evaluated against declared cash buffers and known obligations only."]
+                assumptions=[
+                    "Evaluated upfront purchase with cash flow provision for the billing cycle."
+                    if is_annual else "Assumes variable living expenses remain consistent with your profile."
+                ],
+                limitations=limitations
             )
 
         # ------------------------------------------------------------------
@@ -331,10 +414,10 @@ class ResponseGenerator:
         # ------------------------------------------------------------------
         if intent == IntentType.WHAT_IF:
             sc_type = res.get("scenario_type", "spending_reduction")
-            bal = res.get("projected_balance", 0.0)
-            bal_str = _fmt(bal, currency)
-            cf_change = res.get("cash_flow_change", 0.0)
-            buf_status = res.get("buffer_status_change", "maintained")
+            bal = res.get("projected_balance")
+            bal_str = _fmt(bal, currency) if bal is not None else "Unavailable"
+            cf_change = res.get("cash_flow_change")
+            buf_status = res.get("buffer_status_change")
             shortfall_prob = res.get("shortfall_probability", 0.0)
 
             status_map = {
@@ -344,7 +427,12 @@ class ResponseGenerator:
                 "improved_but_still_breached": "This improves your position but the buffer remains breached.",
                 "worsened_breach": "This would further worsen your buffer breach.",
             }
-            status_text = status_map.get(buf_status, f"Buffer status: {buf_status}")
+            if buf_status and buf_status in status_map:
+                status_text = status_map[buf_status]
+            elif bal is None or res.get("baseline_balance") is None or res.get("minimum_buffer") is None:
+                status_text = "Buffer status is unavailable due to missing baseline profile."
+            else:
+                status_text = status_map.get(buf_status, f"Buffer status: {buf_status or 'Unavailable'}")
 
             if sc_type == "income_or_expense_shock":
                 shock_pct = res.get("income_shock_percentage", 0.0)
@@ -356,11 +444,13 @@ class ResponseGenerator:
                 else:
                     direct = f"Under this scenario, your projected balance would be {bal_str}. {status_text}"
             elif sc_type == "spending_reduction":
-                chg = res.get("change_amount", 0.0)
-                direct = f"If you reduce spending by {_fmt(chg, currency)}, your projected balance would be {bal_str}. {status_text}"
+                chg = res.get("change_amount")
+                chg_str = _fmt(chg, currency) if chg is not None else "your specified amount"
+                direct = f"If you reduce spending by {chg_str}, your projected balance would be {bal_str}. {status_text}"
             elif sc_type == "spending_increase":
-                chg = res.get("change_amount", 0.0)
-                direct = f"If you increase spending by {_fmt(chg, currency)}, your projected balance would be {bal_str}. {status_text}"
+                chg = res.get("change_amount")
+                chg_str = _fmt(chg, currency) if chg is not None else "your specified amount"
+                direct = f"If you increase spending by {chg_str}, your projected balance would be {bal_str}. {status_text}"
             else:
                 direct = f"Here is your baseline financial projection.\n\nYour projected balance would be {bal_str}. {status_text}"
 
@@ -373,7 +463,7 @@ class ResponseGenerator:
             fc_details = {
                 "Scenario Net Cash Flow": _fmt(res.get("scenario_cash_flow"), currency),
                 "Projected Balance": bal_str,
-                "Net Cash Flow Change": _fmt(cf_change, currency),
+                "Net Cash Flow Change": _fmt(cf_change, currency) if cf_change is not None else "N/A",
             }
             if shortfall_prob > 0:
                 fc_details["Reserve Breach Probability"] = f"{shortfall_prob:.1%}"
@@ -385,8 +475,10 @@ class ResponseGenerator:
             recs = []
             if buf_status in ["breached", "worsened_breach"]:
                 recs.append("Mitigate shortfall risk by immediately reducing discretionary spending or activating contingency reserves.")
-            else:
+            elif bal is not None and res.get("minimum_buffer") is not None:
                 recs.append("This scenario maintains financial stability without breaching your declared reserve buffer.")
+            else:
+                recs.append("Configure your monthly minimum reserve buffer in Settings for complete safety analysis.")
 
             return StructuredFinancialExplanation(
                 direct_answer=direct,
@@ -452,34 +544,121 @@ class ResponseGenerator:
             disc = res.get("discretionary_expenses", 0.0)
             q_cat = res.get("queried_category")
             q_amt = res.get("queried_category_amount")
+            q_merchant = res.get("queried_merchant")
+            q_m_amt = res.get("queried_merchant_amount")
+            cat_dist = res.get("category_distribution", [])
+            merchants_by_cat = res.get("merchants_by_category", {})
+            detected_apps_count = res.get("detected_apps_count", 0)
 
-            if q_cat and q_amt is not None:
-                direct = f"You spent {_fmt(q_amt, currency)} on {q_cat.title()} based on historical transactions."
-            else:
-                direct = (
-                    f"Spending Analysis:\n\n"
-                    f"Your total expenses were {_fmt(tot, currency)}, split into {_fmt(ess, currency)} essential and {_fmt(disc, currency)} discretionary."
-                )
+            cat_icons = {
+                "shopping": "🛍️",
+                "food": "🍔",
+                "travel": "🚗",
+                "entertainment": "🎬",
+                "utilities": "💡",
+                "healthcare": "💊",
+                "rent": "🏠",
+                "investments": "📈",
+                "salary": "💰",
+            }
 
             facts = [
                 f"Total analyzed expenses: {_fmt(tot, currency)}",
                 f"Essential expenses (fixed/debt/living): {_fmt(ess, currency)}",
                 f"Discretionary expenses (variable/lifestyle): {_fmt(disc, currency)}",
             ]
-            top_cats = res.get("top_categories", [])
-            if top_cats:
-                facts.append("Top categories: " + ", ".join([f"{c['category']}: {_fmt(c['total_amount'], currency)}" for c in top_cats[:3]]))
+            recs = []
 
-            recs = [
-                "Review high discretionary categories on the Insights page to identify sustainable savings opportunities."
-            ]
+            # 1. User queried a specific app / merchant (e.g. Myntra, Swiggy, Blinkit, Uber, Amazon)
+            if q_merchant and q_m_amt is not None:
+                cat_label = f" ({q_cat.title()})" if q_cat else ""
+                direct = (
+                    f"### 💳 App Spending: **{q_merchant}**\n\n"
+                    f"You spent **{_fmt(q_m_amt, currency)}** on **{q_merchant}**{cat_label} based on historical transactions."
+                )
+                facts.insert(0, f"Direct spend on {q_merchant}: {_fmt(q_m_amt, currency)}")
+
+                if q_cat and q_amt is not None and q_amt > 0:
+                    pct_of_cat = (q_m_amt / q_amt * 100)
+                    facts.append(f"Total {q_cat.title()} category spending: {_fmt(q_amt, currency)} ({q_merchant} represents {pct_of_cat:.1f}%)")
+
+                    other_apps = [
+                        f"{name} ({_fmt(amt, currency)})"
+                        for name, amt in merchants_by_cat.get(q_cat.lower(), {}).items()
+                        if name.lower() != q_merchant.lower()
+                    ]
+                    if other_apps:
+                        facts.append(f"Other recognized apps in {q_cat.title()}: {', '.join(other_apps)}")
+
+                recs.append(f"Monitor orders on {q_merchant} to optimize monthly discretionary cash flow.")
+
+            # 2. User queried a specific category (e.g. food, shopping, travel)
+            elif q_cat and q_amt is not None:
+                cat_key = q_cat.lower()
+                icon = cat_icons.get(cat_key, "🏷️")
+                apps_in_cat = [
+                    f"• **{name}**: {_fmt(amt, currency)}"
+                    for name, amt in sorted(merchants_by_cat.get(cat_key, {}).items(), key=lambda x: x[1], reverse=True)
+                ]
+
+                app_text = ""
+                if apps_in_cat:
+                    app_text = "\n\n**Detected Apps & Merchants:**\n" + "\n".join(apps_in_cat)
+
+                direct = (
+                    f"### {icon} Category Spending: **{q_cat.title()}**\n\n"
+                    f"You spent **{_fmt(q_amt, currency)}** on **{q_cat.title()}** based on your transaction history.{app_text}"
+                )
+                facts.insert(0, f"Total {q_cat.title()} expenses: {_fmt(q_amt, currency)}")
+                if apps_in_cat:
+                    facts.append(f"Recognized apps in {q_cat.title()}: {len(apps_in_cat)} merchants mapped")
+
+                recs.append(f"Review {q_cat.title()} trends on the Insights page to spot potential savings.")
+
+            # 3. General category-wise distribution & detected apps
+            else:
+                dist_lines = []
+                for entry in cat_dist:
+                    c_name = entry["category"]
+                    c_key = c_name.lower()
+                    c_tot = entry["total_amount"]
+                    c_pct = entry["percentage"]
+                    icon = cat_icons.get(c_key, "🏷️")
+
+                    apps = entry.get("apps", [])
+                    if apps:
+                        app_summary = ", ".join([f"{a['name']} ({_fmt(a['amount'], currency)})" for a in apps[:4]])
+                        dist_lines.append(f"• {icon} **{c_name.title()}**: {_fmt(c_tot, currency)} ({c_pct:.1f}%)\n  ↳ *Detected Apps: {app_summary}*")
+                    else:
+                        dist_lines.append(f"• {icon} **{c_name.title()}**: {_fmt(c_tot, currency)} ({c_pct:.1f}%)")
+
+                direct = (
+                    f"### 📊 Category-Wise Spending Distribution\n\n"
+                    f"Here is your expense breakdown categorized by known consumer apps and spending types:\n\n"
+                    + "\n".join(dist_lines)
+                )
+
+                if detected_apps_count > 0:
+                    facts.append(f"Auto-categorized apps: {detected_apps_count} transactions mapped to merchants like Myntra, Amazon, Swiggy, Blinkit, and Uber")
+
+                top_cats = res.get("top_categories", [])
+                if top_cats:
+                    facts.append("Top categories: " + ", ".join([f"{c['category'].title()}: {_fmt(c['total_amount'], currency)}" for c in top_cats[:3]]))
+
+                recs.append("Review discretionary categories (Shopping, Food, Travel) on the Insights page to identify savings.")
+
+            fc_details = {}
+            for entry in cat_dist[:6]:
+                apps_label = f" ({len(entry.get('apps', []))} apps detected)" if entry.get("apps") else ""
+                fc_details[f"{entry['category'].title()} Spending"] = f"{_fmt(entry['total_amount'], currency)} ({entry['percentage']:.1f}%){apps_label}"
 
             return StructuredFinancialExplanation(
                 direct_answer=direct,
                 observed_facts=facts,
+                forecast_details=fc_details if cat_dist else None,
                 recommendations=recs,
-                assumptions=["Transactions categorized by deterministic ML model and merchant rules."],
-                limitations=["Transactions missing descriptions default to 'unknown' category."]
+                assumptions=["Transactions categorized by merchant intelligence rules (e.g. Myntra/Amazon → Shopping, Swiggy/Blinkit → Food, Uber → Travel) and deterministic categorization model."],
+                limitations=["Transactions with unknown descriptions or generic bank transfer IDs default to 'unknown' category."]
             )
 
         # ------------------------------------------------------------------

@@ -1,18 +1,77 @@
-# FIN4YOU & Artha AI: Financial Intelligence, Machine Learning & Decision Engine
+# FIN4YOU & Artha AI: Financial Intelligence & Health Copilot
 
-**Production Architecture, Models, and Analytical Pipeline**  
-*HackMatrix Workspace — Member 2: Dataset, Data Processing and ML*
+**Production Financial Health Copilot, ML Models, and Deterministic Decision Engine**  
+*HackMatrix Prototype*
 
 ---
 
 ## 1. System Overview
 
-FIN4YOU is an intelligent financial health copilot and decision engine designed to transform raw, multi-currency financial records, bank statements, and document media into verified predictions and actionable decisions.
+FIN4YOU is an intelligent, privacy-first Financial Health Copilot designed to transform raw multi-currency bank statements, financial ledgers, and consumer payment patterns into verified financial analytics and grounded advice.
 
-In accordance with `workplan.txt` and `formula_sheet.docx`, the architecture enforces strict separation of concerns:
-- **Machine Learning (Scikit-Learn / RapidOCR):** Transaction categorization, calibrated uncertainty scoring, text extraction from statement PDFs and receipts.
-- **Deterministic Python Engine (NumPy / Pandas):** Mathematical financial calculations (Income, Expenses, Savings Rate, EMIs, Essential/Discretionary ratios, Z-Score anomaly detection, 90-Day forward liquidity simulation). **No LLM hallucination of financial arithmetic.**
-- **Decision Layer:** Constraint-aware affordability optimization evaluating full payments, candidate installment schedules, and cash-flow pacing.
+Powered by **Artha AI**, FIN4YOU combines:
+1. **Deterministic Financial Math:** 100% strict formula evaluation for cash flow, emergency buffers, debt burdens, and affordability. Zero hallucination of financial numbers.
+2. **Merchant & App Intelligence:** Automatic classification of consumer apps into standard categories (e.g. Myntra/Amazon/Ajio $\to$ Shopping, Swiggy/Blinkit/Zomato $\to$ Food, Uber/Ola $\to$ Travel) with deep category-wise distribution breakdowns.
+3. **Dual-Mode AI Copilot:** Multi-turn conversational interface powered by Groq / Local LLM with a zero-hallucination deterministic fallback engine.
+4. **90-Day Actionable Plan:** Dynamic multi-month financial roadmaps tailoring savings, expense reduction, and reserve building based on user personas and transaction velocity.
+5. **Multi-Tenant Storage & Verification:** High-concurrency Supabase PostgreSQL backend with SQLite/mock test isolation and secure user session management.
+
+---
+
+## 2. Tech Stack
+
+- **Frontend:** React 18, TypeScript, Vite, TailwindCSS, Lucide Icons, Recharts, Framer Motion
+- **Backend:** FastAPI, Python 3.12, Pydantic v2, SQLAlchemy, Supabase Python Client
+- **Machine Learning & OCR:** Scikit-Learn, RapidOCR (ONNX Runtime), PyPDF, Pandas, NumPy
+- **Database & Auth:** Supabase PostgreSQL with Row Level Security (RLS) + Local SQLite for offline development
+
+---
+
+## 3. Quickstart & Setup Instructions
+
+### Backend Setup:
+```bash
+# 1. Activate Python virtual environment
+source .venv/bin/activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Configure environment variables
+cp .env.example .env
+# Edit .env with your Supabase / Groq credentials
+
+# 4. Start FastAPI server
+PYTHONPATH=backend uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Frontend Setup:
+```bash
+# 1. Install Node dependencies
+npm install
+
+# 2. Run local development server
+npm run dev
+# Accessible at http://localhost:5173
+
+# 3. Build for production
+npm run build
+```
+
+### Running Backend Tests:
+```bash
+PYTHONPATH=backend pytest backend/tests/ -v
+```
+
+---
+
+## 4. Known Limitations & Safe Boundaries
+
+- **Unidentified Narrations:** Transactions with generic or obscured bank transfer codes default to `'unknown'` category pending user confirmation.
+- **Offline / Fallback Mode:** When external LLM APIs are unavailable or network times out, Artha AI seamlessly activates the deterministic response engine with zero loss of financial accuracy.
+- **PII Protection:** Raw bank statements, identity documents, and sensitive credentials are encrypted and never transmitted to third-party model providers.
+
+---
 
 ---
 

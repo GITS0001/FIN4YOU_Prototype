@@ -71,7 +71,8 @@ def verify_supabase_token(token: str) -> Optional[dict]:
             user_id = payload.get("sub")
             email = payload.get("email")
             if user_id:
-                return {"user_id": user_id, "email": email or f"user_{user_id[:8]}@fin4you.ai"}
+                fallback_email = user_id if "@" in user_id else f"user_{user_id[:8]}@fin4you.ai"
+                return {"user_id": user_id, "email": email or fallback_email}
         except JWTError:
             pass
 

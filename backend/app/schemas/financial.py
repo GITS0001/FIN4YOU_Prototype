@@ -106,12 +106,23 @@ class CategorySpending(BaseModel):
     category: str
     total_amount: float
 
+class FinancialPeriod(BaseModel):
+    start: Optional[str] = None
+    end: Optional[str] = None
+    type: str = "monthly"
+    month: Optional[str] = None
+
+class DataQualitySummary(BaseModel):
+    has_transactions: bool = False
+    has_balance: bool = False
+    warnings: List[str] = Field(default_factory=list)
+
 class FinancialState(BaseModel):
     user_id: str
     income: float
     expenses: float
     savings: float
-    savings_rate: float
+    savings_rate: Optional[float] = None
     expense_ratio: float
     essential_expenses: float
     discretionary_expenses: float
@@ -121,6 +132,17 @@ class FinancialState(BaseModel):
     category_spending: List[CategorySpending]
     anomalies: List[AnomalySignal]
     data_quality_confidence: float
+    # Canonical authenticated fields
+    currency: str = "INR"
+    period: Optional[FinancialPeriod] = None
+    available_balance: Optional[float] = None
+    minimum_buffer: Optional[float] = None
+    total_income: Optional[float] = None
+    total_expenses: Optional[float] = None
+    net_cash_flow: Optional[float] = None
+    category_breakdown: List[CategorySpending] = Field(default_factory=list)
+    transaction_count: int = 0
+    data_quality: Optional[DataQualitySummary] = None
 
 class ForecastEvaluation(BaseModel):
     mae: Optional[float] = None

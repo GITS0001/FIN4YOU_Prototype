@@ -13,8 +13,14 @@ import json
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple, Union
 import pandas as pd
-import pypdf
-from rapidocr_onnxruntime import RapidOCR
+try:
+    import pypdf
+except ImportError:
+    pypdf = None
+try:
+    from rapidocr_onnxruntime import RapidOCR
+except ImportError:
+    RapidOCR = None
 
 from fin4you.models.categorizer import TransactionCategorizer
 from fin4you.cv.receipt_deskewer import ReceiptDeskewer
@@ -30,7 +36,7 @@ class StatementParser:
         deskewer: Optional[ReceiptDeskewer] = None
     ):
         self.categorizer = categorizer or TransactionCategorizer.load()
-        self.ocr_engine = RapidOCR()
+        self.ocr_engine = RapidOCR() if RapidOCR is not None else None
         self.deskewer = deskewer or ReceiptDeskewer()
 
     def parse_digital_statement(self, pdf_path: str) -> Dict[str, Any]:
@@ -89,7 +95,7 @@ class StatementParser:
                 }
                 input_for_ocr = image_path
 
-        result, _ = self.ocr_engine(input_for_ocr)
+        result, _ = self.ocr_engine(input_for_ocr) if self.ocr_engine is not None else ([], None)
         extracted_lines = [r[1] for r in result] if result else []
         
         source_name = os.path.basename(str(image_path)) if isinstance(image_path, (str, Path)) else "in_memory_image"

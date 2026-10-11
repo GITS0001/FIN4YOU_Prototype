@@ -56,6 +56,13 @@ class AffordabilityResult(BaseModel):
     viable_payment_options: List[PaymentOption] = []
     trade_off_required: float = 0.0   # amount of discretionary spending that must be cut
     reasons: List[str] = []           # auditable explanations of the decision
+    immediate_post_payment_balance: Optional[float] = None
+    balance_above_emergency_fund: Optional[float] = None
+    monthly_savings: Optional[float] = None
+    monthly_premium_provision: Optional[float] = None
+    is_annual_premium: Optional[bool] = False
+    has_conflict: Optional[bool] = False
+    data_sources: Optional[Dict[str, str]] = None
 
 
 class Recommendation(BaseModel):
