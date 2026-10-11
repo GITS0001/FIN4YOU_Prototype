@@ -48,7 +48,6 @@ export default function Login() {
           {/* Bottom Security Assurance */}
           <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
             <span>© 2026 Fin4You</span>
-            <span>256-bit Secure Encryption</span>
           </div>
         </div>
       </div>
