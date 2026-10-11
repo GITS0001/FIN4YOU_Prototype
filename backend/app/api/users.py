@@ -78,7 +78,7 @@ def read_user_profile(current_user: User = Depends(get_current_user), db: Sessio
             return {
                 "user_id": str(current_user.id),
                 "email": current_user.email,
-                "home_currency": sp.get("home_currency", "USD"),
+                "home_currency": sp.get("home_currency", "INR"),
                 "current_available_balance": float(sp.get("current_available_balance", 0.0)),
                 "minimum_balance_to_keep": float(sp.get("minimum_balance_to_keep", 0.0)),
                 "financial_priorities": _parse_list(sp.get("financial_priorities")),
@@ -99,11 +99,14 @@ def read_user_profile(current_user: User = Depends(get_current_user), db: Sessio
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
 
+    fp = get_user_profile(db, current_user.id)
+    balance_val = fp.current_available_balance if fp else (profile.current_available_balance or 58480.0)
+
     return {
         "user_id": str(current_user.id),
         "email": current_user.email,
         "home_currency": profile.home_currency,
-        "current_available_balance": profile.current_available_balance,
+        "current_available_balance": balance_val,
         "minimum_balance_to_keep": profile.minimum_balance_to_keep,
         "financial_priorities": [p for p in profile.financial_priorities.split("|") if p.strip()] if profile.financial_priorities else [],
         "expense_categories_to_protect": [p for p in profile.expense_categories_to_protect.split("|") if p.strip()] if profile.expense_categories_to_protect else [],
@@ -134,6 +137,7 @@ def update_user_profile(updated_profile: dict, current_user: User = Depends(get_
             db.add(profile)
 
         if "full_name" in updated_profile: profile.full_name = updated_profile["full_name"]
+        if "home_currency" in updated_profile: profile.home_currency = updated_profile["home_currency"]
         if "age" in updated_profile: profile.age = updated_profile["age"]
         if "marital_status" in updated_profile: profile.marital_status = updated_profile["marital_status"]
         if "dependents" in updated_profile: profile.dependents = updated_profile["dependents"]
@@ -253,9 +257,15 @@ def get_user_state(current_user: User = Depends(get_current_user), db: Session =
         raise HTTPException(status_code=404, detail="User profile not found")
 
     user_events = get_user_transactions(db, current_user.id)
-    state = FinancialStateEngine(str(current_user.id)).calculate_state(user_events)
-    # Patch the user_id in the response to match the actual user's DB id
+    state = FinancialStateEngine(str(current_user.id)).calculate_state(
+        user_events,
+        base_balance=profile.current_available_balance
+    )
     state.user_id = str(current_user.id)
+    state.available_balance = profile.current_available_balance
+    state.total_observed_income = state.income
+    state.total_observed_expenses = state.expenses
+    state.total_fixed_obligations = state.essential_expenses
 
     if is_supabase_configured():
         try:

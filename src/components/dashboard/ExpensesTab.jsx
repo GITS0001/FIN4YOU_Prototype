@@ -44,7 +44,7 @@ export default function ExpensesTab({ profile, onRefreshState }) {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
 
-  const currencySymbol = profile?.currencySymbol || '₹';
+  const currencySymbol = profile?.currencySymbol || (typeof window !== 'undefined' && localStorage.getItem('fin4you_currency_symbol')) || '₹';
 
   // Load transactions from backend
   const loadTransactions = async () => {

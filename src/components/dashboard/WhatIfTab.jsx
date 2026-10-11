@@ -3,7 +3,7 @@ import { SlidersHorizontal, ShieldCheck, Activity } from 'lucide-react';
 import { checkAffordability, runWhatIfSimulation } from '../../api/fin4youApi';
 
 export default function WhatIfTab({ profile }) {
-  const currencySymbol = profile?.currencySymbol || '₹';
+  const currencySymbol = profile?.currencySymbol || (typeof window !== 'undefined' && localStorage.getItem('fin4you_currency_symbol')) || '₹';
   const baselineIncome = profile?.income || 75000;
   const baselineExpenses = profile?.expenses || 42200;
   const currentBalance = profile?.balance || 58480;

@@ -3,7 +3,7 @@ import { Sparkles, ArrowRight, ShieldAlert } from 'lucide-react';
 import { getMonthlyStatement } from '../../api/fin4youApi';
 
 export default function InsightsTab({ profile, alerts = [], onSelectTab }) {
-  const currencySymbol = profile?.currencySymbol || '₹';
+  const currencySymbol = profile?.currencySymbol || (typeof window !== 'undefined' && localStorage.getItem('fin4you_currency_symbol')) || '₹';
   const [statement, setStatement] = useState(null);
   const [dismissed, setDismissed] = useState([]);
 

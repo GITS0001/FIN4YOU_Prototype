@@ -21,16 +21,20 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   // Financial profile & state calibrated with FIN4YOU backend
-  const [profile, setProfile] = useState({
-    userId: 'user_01',
-    currency: 'INR',
-    currencySymbol: '₹',
-    balance: 58480,
-    buffer: 18000,
-    income: 75000,
-    expenses: 42200,
-    full_name: '',
-    email: '',
+  const [profile, setProfile] = useState(() => {
+    const savedCurrency = (typeof window !== 'undefined' && localStorage.getItem('fin4you_currency')) || 'INR';
+    const savedSymbol = savedCurrency === 'USD' ? '$' : savedCurrency === 'EUR' ? '€' : savedCurrency === 'ZAR' ? 'R' : '₹';
+    return {
+      userId: 'user_01',
+      currency: savedCurrency,
+      currencySymbol: savedSymbol,
+      balance: 58480,
+      buffer: 18000,
+      income: 75000,
+      expenses: 42200,
+      full_name: '',
+      email: '',
+    };
   });
   const [financialState, setFinancialState] = useState(null);
   const [alerts, setAlerts] = useState([]);
@@ -47,11 +51,21 @@ export default function Dashboard() {
 
       if (profileData.status === 'fulfilled' && profileData.value) {
         const p = profileData.value;
-        const symbol = p.home_currency === 'USD' ? '$' : p.home_currency === 'EUR' ? '€' : p.home_currency === 'ZAR' ? 'R' : '₹';
+        const savedCurrency = (typeof window !== 'undefined' && localStorage.getItem('fin4you_currency')) || null;
+        // Default to INR; only use backend home_currency if user specifically selected another non-USD currency, or if explicitly saved
+        const effectiveCurrency = savedCurrency || (p.home_currency && p.home_currency !== 'USD' ? p.home_currency : 'INR');
+        const symbol = effectiveCurrency === 'USD' ? '$' : effectiveCurrency === 'EUR' ? '€' : effectiveCurrency === 'ZAR' ? 'R' : '₹';
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('fin4you_currency', effectiveCurrency);
+          localStorage.setItem('fin4you_currency_symbol', symbol);
+        }
+        if (p.home_currency === 'USD') {
+          updateUserProfile({ home_currency: effectiveCurrency }).catch(() => {});
+        }
         setProfile((prev) => ({
           ...prev,
           userId: p.user_id || prev.userId,
-          currency: p.home_currency || 'INR',
+          currency: effectiveCurrency,
           currencySymbol: symbol,
           balance: p.current_available_balance ?? prev.balance,
           buffer: p.minimum_balance_to_keep ?? prev.buffer,
@@ -69,6 +83,7 @@ export default function Dashboard() {
             expenses: stateData.value.total_observed_expenses || prev.expenses,
             balance: stateData.value.available_balance ?? prev.balance,
             buffer: stateData.value.minimum_reserve ?? prev.buffer,
+            currencySymbol: prev.currencySymbol,
           }));
         }
       }
@@ -199,6 +214,10 @@ export default function Dashboard() {
           <ProfileTab
             profile={profile}
             onUpdateProfile={(updated) => {
+              if (updated.currency) {
+                localStorage.setItem('fin4you_currency', updated.currency);
+                localStorage.setItem('fin4you_currency_symbol', updated.currencySymbol || '₹');
+              }
               setProfile((prev) => ({ ...prev, ...updated }));
               fetchBackendData();
             }}

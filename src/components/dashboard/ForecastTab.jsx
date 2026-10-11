@@ -17,7 +17,7 @@ export default function ForecastTab({ profile, financialState }) {
       .catch((err) => console.warn('Probabilistic forecast call warning:', err));
   }, []);
 
-  const currencySymbol = profile?.currencySymbol || '₹';
+  const currencySymbol = profile?.currencySymbol || (typeof window !== 'undefined' && localStorage.getItem('fin4you_currency_symbol')) || '₹';
   const buffer = financialState?.minimum_reserve ?? profile?.buffer ?? 18000;
   const initialBalance = financialState?.available_balance ?? profile?.balance ?? 58480;
 

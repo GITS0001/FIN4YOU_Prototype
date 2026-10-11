@@ -36,7 +36,7 @@ def get_user_profile(db: Optional[Session], user_id: Any) -> Optional[FinancialP
 
             return FinancialProfile(
                 user_id=str(sp_profile.get("user_id")),
-                home_currency=sp_profile.get("home_currency", "USD"),
+                home_currency=sp_profile.get("home_currency", "INR"),
                 current_available_balance=float(sp_profile.get("current_available_balance", 0.0)),
                 minimum_balance_to_keep=float(sp_profile.get("minimum_balance_to_keep", 0.0)),
                 financial_priorities=priorities,
@@ -71,10 +71,24 @@ def get_user_profile(db: Optional[Session], user_id: Any) -> Optional[FinancialP
                 max_installment_months=12
             )
 
+        # Dynamically compute balance from recorded transactions if available
+        curr_balance = float(db_profile.current_available_balance or 58480.0)
+        try:
+            tx_list = db.query(Transaction).filter(Transaction.user_id == str(db_profile.user_id)).all()
+            if not tx_list:
+                tx_list = db.query(Transaction).all()
+            if tx_list:
+                credits = sum(t.amount for t in tx_list if (t.direction and t.direction.upper() in ["INFLOW", "CREDIT"]) or t.event_type == "income")
+                debits = sum(t.amount for t in tx_list if (t.direction and t.direction.upper() in ["OUTFLOW", "DEBIT"]) or t.event_type == "expense")
+                if credits > 0 or debits > 0:
+                    curr_balance = max(0.0, credits - debits)
+        except Exception:
+            pass
+
         return FinancialProfile(
             user_id=str(db_profile.user_id),
             home_currency=db_profile.home_currency or "INR",
-            current_available_balance=float(db_profile.current_available_balance or 58480.0),
+            current_available_balance=curr_balance,
             minimum_balance_to_keep=float(db_profile.minimum_balance_to_keep or 18000.0),
             financial_priorities=db_profile.financial_priorities.split("|") if db_profile.financial_priorities else [],
             expense_categories_to_protect=db_profile.expense_categories_to_protect.split("|") if db_profile.expense_categories_to_protect else [],

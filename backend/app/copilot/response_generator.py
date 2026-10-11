@@ -11,7 +11,7 @@ def _fmt(value, currency: str = '') -> str:
         return str(value)
     
     symbols = {'EUR': '€', 'USD': '$', 'ZAR': 'R', 'IDR': 'Rp', 'INR': '₹'}
-    sym = symbols.get(currency.upper(), f'{currency} ' if currency else '')
+    sym = symbols.get((currency or 'INR').upper(), '₹')
     
     if abs(v) >= 1_000_000:
         return f"{sym}{v:,.0f}"

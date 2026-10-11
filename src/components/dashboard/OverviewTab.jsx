@@ -38,7 +38,7 @@ export default function OverviewTab({ profile, financialState, onSelectTab }) {
       .catch(() => {});
   }, []);
 
-  const currencySymbol = profile?.currencySymbol || '₹';
+  const currencySymbol = profile?.currencySymbol || (typeof window !== 'undefined' && localStorage.getItem('fin4you_currency_symbol')) || '₹';
   const balance = financialState?.available_balance ?? profile?.balance ?? 58480;
   const buffer = financialState?.minimum_reserve ?? profile?.buffer ?? 18000;
   const income = financialState?.total_observed_income ?? profile?.income ?? 75000;

@@ -4,24 +4,41 @@ import { queryCopilot } from '../../api/fin4youApi';
 import MarkdownMessage from './MarkdownMessage';
 
 export default function CopilotTab({ profile }) {
-  const currencySymbol = profile?.currencySymbol || '₹';
-  const balance = profile?.balance || 58480;
-  const buffer = profile?.buffer || 18000;
+  const currencySymbol = profile?.currencySymbol || (typeof window !== 'undefined' && localStorage.getItem('fin4you_currency_symbol')) || '₹';
+  const balance = profile?.balance ?? 58480;
+  const buffer = profile?.buffer ?? 18000;
 
-  const defaultMessages = [
+  const getGreeting = (sym, bal, buf) =>
+    `Hello! I'm Artha AI, your Fin4You financial assistant. I have direct access to your verified backend ledger. Your current available balance is ${sym}${bal.toLocaleString()} with a safety buffer of ${sym}${buf.toLocaleString()}. What financial question can I help you analyze today?`;
+
+  const [messages, setMessages] = useState([
     {
       id: 'm-1',
       sender: 'bot',
-      text: `Hello! I'm Artha AI, your Fin4You financial assistant. I have direct access to your verified backend ledger. Your current available balance is ${currencySymbol}${balance.toLocaleString()} with a safety buffer of ${currencySymbol}${buffer.toLocaleString()}. What financial question can I help you analyze today?`,
+      text: getGreeting(currencySymbol, balance, buffer),
     },
-  ];
-
-  const [messages, setMessages] = useState(defaultMessages);
+  ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [copilotError, setCopilotError] = useState(null);
   const scrollRef = useRef(null);
   const counterRef = useRef(1);
+
+  // Keep welcome message synced if profile balance/currency updates before user starts chatting
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].id === 'm-1') {
+        return [
+          {
+            id: 'm-1',
+            sender: 'bot',
+            text: getGreeting(currencySymbol, balance, buffer),
+          },
+        ];
+      }
+      return prev;
+    });
+  }, [balance, buffer, currencySymbol]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });

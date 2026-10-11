@@ -121,6 +121,11 @@ class FinancialState(BaseModel):
     category_spending: List[CategorySpending]
     anomalies: List[AnomalySignal]
     data_quality_confidence: float
+    available_balance: float = 0.0
+    minimum_reserve: float = 18000.0
+    total_observed_income: float = 0.0
+    total_observed_expenses: float = 0.0
+    total_fixed_obligations: float = 0.0
 
 class ForecastEvaluation(BaseModel):
     mae: Optional[float] = None

@@ -4,7 +4,7 @@ import { updateUserProfile, getUserProfile } from '../../api/fin4youApi';
 
 export default function ProfileTab({ profile, onUpdateProfile, email, username }) {
   const [fullName, setFullName] = useState(username || profile?.full_name || '');
-  const [currency, setCurrency] = useState(profile?.currency || 'INR');
+  const [currency, setCurrency] = useState(() => (typeof window !== 'undefined' && localStorage.getItem('fin4you_currency')) || profile?.currency || 'INR');
   const [buffer, setBuffer] = useState(profile?.buffer || 18000);
   const [age, setAge] = useState('30');
   const [maritalStatus, setMaritalStatus] = useState('Single');
@@ -27,12 +27,20 @@ export default function ProfileTab({ profile, onUpdateProfile, email, username }
   const [categoriesToReduce] = useState(['Dining Out', 'Entertainment', 'Impulse Shopping']);
   const [categoriesToStop] = useState(['Unused Cloud Storage', 'Delivery Membership', 'Streaming Add-ons']);
 
+  // Keep currency in sync if parent profile changes
+  useEffect(() => {
+    if (profile?.currency && profile.currency !== currency) {
+      setCurrency(profile.currency);
+    }
+  }, [profile?.currency]);
+
   useEffect(() => {
     getUserProfile()
       .then((p) => {
         if (p) {
           if (p.full_name) setFullName(p.full_name);
-          if (p.home_currency) setCurrency(p.home_currency);
+          const activeCurr = (typeof window !== 'undefined' && localStorage.getItem('fin4you_currency')) || (p.home_currency && p.home_currency !== 'USD' ? p.home_currency : 'INR');
+          setCurrency(activeCurr);
           if (p.minimum_balance_to_keep) setBuffer(p.minimum_balance_to_keep);
           if (p.age) setAge(p.age);
           if (p.marital_status) setMaritalStatus(p.marital_status);
@@ -44,12 +52,41 @@ export default function ProfileTab({ profile, onUpdateProfile, email, username }
       .catch(() => {});
   }, []);
 
+  const handleCurrencyChange = async (newCurr) => {
+    setCurrency(newCurr);
+    const sym = newCurr === 'USD' ? '$' : newCurr === 'EUR' ? '€' : newCurr === 'ZAR' ? 'R' : '₹';
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fin4you_currency', newCurr);
+      localStorage.setItem('fin4you_currency_symbol', sym);
+    }
+    if (onUpdateProfile) {
+      onUpdateProfile({
+        ...profile,
+        currency: newCurr,
+        currencySymbol: sym,
+      });
+    }
+    try {
+      await updateUserProfile({
+        full_name: fullName,
+        home_currency: newCurr,
+        minimum_balance_to_keep: Number(buffer),
+      });
+    } catch (err) {
+      console.warn('Immediate currency sync warning:', err);
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setErrorMsg(null);
     setSaving(true);
 
     const currencySymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'ZAR' ? 'R' : '₹';
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fin4you_currency', currency);
+      localStorage.setItem('fin4you_currency_symbol', currencySymbol);
+    }
 
     const payload = {
       full_name: fullName,
@@ -204,7 +241,7 @@ export default function ProfileTab({ profile, onUpdateProfile, email, username }
                 <select
                   id="currency-select"
                   value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
+                  onChange={(e) => handleCurrencyChange(e.target.value)}
                   className="w-full min-h-[44px] px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-xs sm:text-sm text-gray-900 font-medium focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
                 >
                   <option value="INR">INR (₹ Indian Rupee)</option>
